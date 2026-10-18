@@ -48,7 +48,8 @@ test('Claude consegue buscar, ler e escrever no vault via MCP', { timeout: 300_0
 
 		const info = await client.callTool({ name: 'vault_info', arguments: {} });
 		console.log(info.content[0].text);
-		assert.match(info.content[0].text, /busca por significado: ativa/);
+		// com o modelo já em cache fica "ativa"; num cache vazio o download segue em segundo plano
+		assert.match(info.content[0].text, /busca por significado: (ativa|carregando)/);
 	} finally {
 		await client.close();
 	}

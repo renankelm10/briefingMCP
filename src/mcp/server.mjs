@@ -271,18 +271,21 @@ server.registerTool(
 		const lines = [];
 		for (const v of vaults()) {
 			const brain = brains.get(v.folder);
-			await brain.refresh({ maxAge: 3000 });
+			if (!brain.refreshing) await brain.refresh({ maxAge: 3000, embed: embedder.loaded });
 			const s = brain.stats();
-			lines.push(
-				`- ${v.name}${v.team ? ' (equipe)' : ''}: ${v.folder}\n  ${s.notes} notas, ${s.chunks} trechos, ${s.embedded} com vetores · busca por significado: ${s.semantic ? 'ativa' : `indisponível (${s.error ?? 'modelo não carregado'})`}`,
-			);
+			const semantic = !s.semantic
+				? `indisponível (${s.error ?? 'modelo não carregado'}) — usando busca por palavras`
+				: embedder.loaded
+					? 'ativa'
+					: 'carregando o modelo de IA (busca por palavras enquanto isso)';
+			lines.push(`- ${v.name}${v.team ? ' (equipe)' : ''}: ${v.folder}\n  ${s.notes} notas, ${s.chunks} trechos, ${s.embedded} com vetores · busca por significado: ${semantic}`);
 		}
 		return text(lines.join('\n') || 'Nenhum vault encontrado.');
 	},
 );
 
-// Aquece o índice em segundo plano para a primeira busca ser rápida.
-for (const v of vaults()) brains.get(v.folder).refresh().catch((err) => log('falha ao indexar', v.folder, err.message));
+// Aquece o índice em segundo plano: texto primeiro (instantâneo), depois o modelo de IA e os vetores.
+for (const v of vaults()) brains.get(v.folder).warmup();
 
 await server.connect(new StdioServerTransport());
 log(`pronto · vaults: ${vaults().map((v) => v.name).join(', ') || 'nenhum'}`);

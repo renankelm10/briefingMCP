@@ -12,6 +12,7 @@ const FORMAT = 2;
 const NOTE_EXT = /\.(md|markdown|txt)$/i;
 const MAX_NOTE = 5 * 1024 * 1024;
 const RRF_K = 60;
+const EMBED_RETRY_MS = 30_000;
 
 const sha1 = (s) => crypto.createHash('sha1').update(s).digest('hex');
 
@@ -31,6 +32,18 @@ class Brain {
 		this.updatedAt = null;
 		this.lastRefresh = 0;
 		this.embedError = null;
+	}
+
+	// Uma falha ao carregar o modelo (rede, arquivo ocupado) não desliga a busca por significado
+	// para sempre: depois de um tempo, tenta de novo.
+	semanticReady() {
+		if (this.embedError && Date.now() - this.embedErrorAt > EMBED_RETRY_MS) this.embedError = null;
+		return !!this.embedder && !this.embedError;
+	}
+
+	failEmbed(err) {
+		this.embedError = err;
+		this.embedErrorAt = Date.now();
 	}
 
 	// Força a próxima consulta a reler o disco.
@@ -111,17 +124,26 @@ class Brain {
 	}
 
 	// Atualiza só o que mudou desde a última vez. `maxAge` evita varrer o disco a cada consulta.
-	async refresh({ maxAge = 0, onProgress } = {}) {
+	// `embed: false` atualiza só o texto (busca por palavras), sem esperar o modelo de IA.
+	async refresh({ maxAge = 0, onProgress, embed = true } = {}) {
 		await this.load();
 		if (maxAge && Date.now() - this.lastRefresh < maxAge) return false;
-		this.refreshing ??= this.doRefresh(onProgress).finally(() => {
+		this.refreshing ??= this.doRefresh(onProgress, embed).finally(() => {
 			this.refreshing = null;
 			this.lastRefresh = Date.now();
 		});
 		return this.refreshing;
 	}
 
-	async doRefresh(onProgress) {
+	// Prepara a busca sem bloquear: primeiro o texto (rápido), depois o modelo e os vetores.
+	warmup() {
+		return this.refresh({ embed: false })
+			.then(() => this.embedder?.load())
+			.then(() => this.refresh())
+			.catch((err) => this.failEmbed(err));
+	}
+
+	async doRefresh(onProgress, embed = true) {
 		const present = await this.walk();
 		const nextFiles = {};
 		const changed = new Map(); // rel -> chunks novos
@@ -145,7 +167,7 @@ class Brain {
 			if (known?.hash !== hash) changed.set(rel, chunkNote(rel, text));
 		}
 		const removed = Object.keys(this.files).filter((rel) => !(rel in nextFiles));
-		const embedderReady = this.embedder && !this.embedError;
+		const embedderReady = embed && this.semanticReady();
 		const pendingVectors = this.chunks.some((c) => !c.embedded) && embedderReady;
 		if (!changed.size && !removed.length && !pendingVectors) {
 			this.files = nextFiles;
@@ -187,8 +209,8 @@ class Brain {
 					onProgress?.({ done: Math.min(s + STEP, toEmbed.length), total: toEmbed.length });
 				}
 			} catch (err) {
-				this.embedError = err;
-				this.log('busca por significado indisponível; usando só palavras', err.message);
+				this.failEmbed(err);
+				this.log('busca por significado indisponível agora; usando só palavras (nova tentativa em 30 s)', err.message);
 			}
 		}
 
@@ -202,7 +224,11 @@ class Brain {
 	}
 
 	async search(query, { limit = 8, pathPrefix = '' } = {}) {
-		await this.refresh({ maxAge: 3000 });
+		// Nunca deixa uma consulta esperando o download do modelo (o Claude desiste em 60 s):
+		// sem modelo pronto, responde por palavras e o carregamento segue em segundo plano.
+		const modelReady = !!this.embedder?.loaded;
+		if (!modelReady && this.semanticReady()) this.embedder.load().catch((err) => this.failEmbed(err));
+		if (modelReady || !this.refreshing) await this.refresh({ maxAge: 3000, embed: modelReady });
 		if (!this.chunks.length || !String(query).trim()) return [];
 		const allowed = (c) => !pathPrefix || c.rel.toLowerCase().startsWith(pathPrefix.toLowerCase());
 		this.bm25 ??= new Bm25(this.chunks.map((c) => `${c.context}\n${c.text}`));
@@ -219,7 +245,7 @@ class Brain {
 
 		add(this.bm25.search(query, 60), 'palavras');
 
-		if (this.embedder && !this.embedError && this.chunks.some((c) => c.embedded)) {
+		if (modelReady && this.semanticReady() && this.chunks.some((c) => c.embedded)) {
 			try {
 				const [q] = await this.embedder.embed([query], 'query');
 				const scores = [];
@@ -233,7 +259,7 @@ class Brain {
 				scores.sort((a, b) => b.score - a.score);
 				add(scores.slice(0, 60), 'significado');
 			} catch (err) {
-				this.embedError = err;
+				this.failEmbed(err);
 			}
 		}
 
@@ -253,7 +279,7 @@ class Brain {
 			chunks: this.chunks.length,
 			embedded: this.chunks.filter((c) => c.embedded).length,
 			model: this.model,
-			semantic: !!this.embedder && !this.embedError,
+			semantic: this.semanticReady(),
 			error: this.embedError?.message ?? null,
 			updatedAt: this.updatedAt,
 		};

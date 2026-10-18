@@ -16,6 +16,7 @@ class Embedder {
 		this.dims = DIMS;
 		this.loading = null;
 		this.error = null;
+		this.loaded = false; // true quando o modelo está pronto na memória
 	}
 
 	async load() {
@@ -24,7 +25,21 @@ class Embedder {
 			env.cacheDir = this.cacheDir;
 			env.allowLocalModels = true;
 			this.log(`carregando modelo de embeddings ${MODEL} (primeira vez baixa ~120 MB)`);
-			return pipeline('feature-extraction', MODEL, { dtype: 'q8' });
+			// O app e o servidor MCP compartilham o cache: se os dois baixarem o modelo ao mesmo
+			// tempo, no Windows um não consegue substituir o arquivo que o outro já abriu (EPERM/EBUSY).
+			// Esperar e tentar de novo resolve: na segunda vez o modelo já está no cache.
+			for (let attempt = 1; ; attempt++) {
+				try {
+					const extractor = await pipeline('feature-extraction', MODEL, { dtype: 'q8' });
+					this.loaded = true;
+					return extractor;
+				} catch (err) {
+					const busy = /EPERM|EBUSY|EACCES|ENOENT|ENOTEMPTY/.test(`${err?.code} ${err?.message}`);
+					if (!busy || attempt >= 5) throw err;
+					this.log(`modelo ocupado por outro processo; tentando de novo (${attempt}/4)`);
+					await new Promise((r) => setTimeout(r, 1500 * attempt));
+				}
+			}
 		})().catch((err) => {
 			this.error = err;
 			this.loading = null;
