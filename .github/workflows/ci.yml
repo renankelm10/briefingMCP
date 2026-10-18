@@ -21,10 +21,13 @@ jobs:
       # Tests do not need the Electron binary; the embedding model is cached between runs.
       ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
       BRIEFING_MODELS_DIR: ${{ github.workspace }}/.models
+    defaults:
+      run:
+        shell: bash
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -35,23 +38,33 @@ jobs:
         uses: actions/cache@v4
         with:
           path: .models
-          key: models-multilingual-e5-small-v1
+          key: models-multilingual-e5-small-${{ runner.os }}-v1
 
       - name: Security + P2P sync tests
-        run: npm run test:fast
+        run: npm run test:fast 2>&1 | tee test-fast.log; exit ${PIPESTATUS[0]}
 
       - name: RAG + MCP tests (real local model)
-        run: node --test test/brain.test.cjs test/mcp.test.mjs
+        run: node --test test/brain.test.cjs test/mcp.test.mjs 2>&1 | tee test-rag.log; exit ${PIPESTATUS[0]}
 
       - name: Build renderer bundle
         run: npm run build
+
+      # Logs of public runs require sign-in; annotations do not. Publish the tail of failed logs.
+      - name: Report failure details
+        if: failure()
+        run: |
+          for f in test-fast.log test-rag.log; do
+            [ -f "$f" ] || continue
+            msg=$(tail -n 80 "$f" | sed -e 's/%/%25/g' -e 's/\r//g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=$f::$msg"
+          done
 
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: npm audit --omit=dev --audit-level=high
