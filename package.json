@@ -1,0 +1,141 @@
+{
+  "name": "briefing",
+  "productName": "Briefing",
+  "version": "0.3.0",
+  "description": "Local-first Markdown notes with peer-to-peer team folders and a local AI second brain that Claude can read through MCP.",
+  "author": "Renan Kelm <renankelm10@gmail.com>",
+  "license": "MIT",
+  "homepage": "https://github.com/renankelm10/briefingMCP",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/renankelm10/briefingMCP.git"
+  },
+  "bugs": {
+    "url": "https://github.com/renankelm10/briefingMCP/issues"
+  },
+  "keywords": [
+    "markdown",
+    "notes",
+    "second-brain",
+    "p2p",
+    "hyperswarm",
+    "rag",
+    "mcp",
+    "claude",
+    "electron",
+    "local-first"
+  ],
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "src/main/main.js",
+  "scripts": {
+    "build": "node build.mjs",
+    "icon": "node scripts/make-icon.mjs",
+    "start": "node scripts/make-icon.mjs && node build.mjs && electron .",
+    "dist": "node scripts/make-icon.mjs && node build.mjs && electron-builder",
+    "dist:win": "node scripts/make-icon.mjs && node build.mjs && electron-builder --win",
+    "dist:mac": "node scripts/make-icon.mjs && node build.mjs && electron-builder --mac",
+    "dist:linux": "node scripts/make-icon.mjs && node build.mjs && electron-builder --linux",
+    "test": "node --test test/security.test.cjs test/sync.test.cjs test/brain.test.cjs test/mcp.test.mjs",
+    "test:fast": "node --test test/security.test.cjs test/sync.test.cjs",
+    "mcp": "node src/mcp/server.mjs"
+  },
+  "devDependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.11.1",
+    "@codemirror/lang-markdown": "^6.5.2",
+    "@codemirror/lang-yaml": "^6.1.3",
+    "@codemirror/language": "^6.13.1",
+    "@codemirror/search": "^6.7.2",
+    "@codemirror/state": "^6.7.6",
+    "@codemirror/view": "^6.43.14",
+    "@lezer/highlight": "^1.2.5",
+    "d3-force": "^3.0.0",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
+    "markdown-it": "^15.0.3"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.3.1",
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "b4a": "^1.9.0",
+    "hyperdht": "^6.34.1",
+    "hyperswarm": "^4.17.2",
+    "node-diff3": "^3.2.1",
+    "zod": "^4.6.7"
+  },
+  "build": {
+    "appId": "app.briefing.desktop",
+    "productName": "Briefing",
+    "asar": false,
+    "publish": {
+      "provider": "github",
+      "owner": "renankelm10",
+      "repo": "briefingMCP",
+      "releaseType": "draft"
+    },
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.map",
+      "src/main/**/*",
+      "src/core/**/*",
+      "src/mcp/**/*",
+      "build/icon.png",
+      "package.json"
+    ],
+    "electronFuses": {
+      "runAsNode": true,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": false,
+      "onlyLoadAppFromAsar": false,
+      "grantFileProtocolExtraPrivileges": false
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Briefing"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64"]
+        },
+        {
+          "target": "zip",
+          "arch": ["arm64"]
+        }
+      ],
+      "category": "public.app-category.productivity",
+      "icon": "build/icon.png",
+      "identity": null,
+      "hardenedRuntime": false
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "icon": "build/icon.png",
+      "maintainer": "Renan Kelm <renankelm10@gmail.com>",
+      "synopsis": "Local-first notes, P2P team folders and a local AI second brain"
+    }
+  }
+}

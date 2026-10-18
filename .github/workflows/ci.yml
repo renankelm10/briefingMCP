@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    env:
+      # Tests do not need the Electron binary; the embedding model is cached between runs.
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+      BRIEFING_MODELS_DIR: ${{ github.workspace }}/.models
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Cache embedding model
+        uses: actions/cache@v4
+        with:
+          path: .models
+          key: models-multilingual-e5-small-v1
+
+      - name: Security + P2P sync tests
+        run: npm run test:fast
+
+      - name: RAG + MCP tests (real local model)
+        run: node --test test/brain.test.cjs test/mcp.test.mjs
+
+      - name: Build renderer bundle
+        run: npm run build
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm audit --omit=dev --audit-level=high

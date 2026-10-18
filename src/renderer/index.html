@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; worker-src 'self'; img-src 'self' briefing: data: https:; style-src 'self' 'unsafe-inline'">
+	<title>Briefing</title>
+	<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+	<div id="app">
+		<aside id="left">
+			<div class="pane-header">
+				<span class="brand">◆</span>
+				<span id="vault-name">Briefing</span>
+				<div class="actions">
+					<button class="icon-btn" id="btn-new-note" title="Nova nota (Ctrl+N)">＋</button>
+					<button class="icon-btn" id="btn-new-briefing" title="Novo briefing (Ctrl+Shift+B)">✎</button>
+					<button class="icon-btn" id="btn-new-folder" title="Nova pasta">▤</button>
+				</div>
+			</div>
+			<input id="search" type="search" placeholder="Buscar texto ou #tag  (Ctrl+Shift+F)" spellcheck="false">
+			<div id="browse">
+				<div id="favorites" class="section" hidden>
+					<button class="section-title" id="favorites-toggle">Favoritos</button>
+					<div id="favorites-list"></div>
+				</div>
+				<div id="tree"></div>
+			</div>
+			<div id="search-results" hidden></div>
+			<div class="pane-footer">
+				<button class="icon-btn" id="btn-graph" title="Grafo (Ctrl+G)">◎</button>
+				<button class="icon-btn" id="btn-open-vault" title="Abrir outro vault">⇄</button>
+				<button class="icon-btn" id="btn-teams" title="Equipes e sincronização (Ctrl+Shift+E)">⇅</button>
+				<button class="icon-btn" id="btn-brain" title="Segundo cérebro e Claude">✦</button>
+				<span class="spacer"></span>
+				<button class="icon-btn" id="btn-settings" title="Configurações (Ctrl+,)">⚙</button>
+			</div>
+			<div class="resizer" id="resize-left"></div>
+		</aside>
+
+		<main id="center">
+			<div id="tabbar">
+				<button class="icon-btn" id="btn-toggle-left" title="Painel esquerdo (Ctrl+\)">◧</button>
+				<div id="tabbar-tabs"></div>
+				<button class="icon-btn" id="btn-new-tab" title="Nova aba (Ctrl+T)">＋</button>
+				<span class="spacer"></span>
+				<button class="icon-btn" id="btn-focus" title="Modo foco (Ctrl+Shift+Enter)">⛶</button>
+				<button class="icon-btn" id="btn-toggle-right" title="Painel direito (Ctrl+Shift+\)">◨</button>
+			</div>
+			<div id="view-header">
+				<button class="icon-btn" id="btn-back" title="Voltar (Ctrl+Alt+←)">←</button>
+				<button class="icon-btn" id="btn-fwd" title="Avançar (Ctrl+Alt+→)">→</button>
+				<span id="breadcrumb"></span>
+				<button class="icon-btn" id="btn-star" title="Favoritar" hidden>☆</button>
+				<button class="btn small" id="btn-mode" title="Alternar leitura / edição (Ctrl+E)">Ler</button>
+				<button class="icon-btn" id="btn-more" title="Mais ações">⋯</button>
+			</div>
+			<div id="doc" hidden>
+				<div id="scroller">
+					<input id="title" spellcheck="false" aria-label="Título da nota">
+					<div id="editor"></div>
+					<article id="reader" class="markdown" hidden></article>
+				</div>
+			</div>
+			<div id="empty" hidden>
+				<div class="empty-mark">◆</div>
+				<h2>Briefing</h2>
+				<p>Suas notas, conectadas.</p>
+				<div class="empty-actions">
+					<button class="btn cta" id="empty-new">Nova nota</button>
+					<button class="btn" id="empty-briefing">Novo briefing</button>
+					<button class="btn" id="empty-open">Abrir nota…</button>
+				</div>
+				<div id="empty-recent"></div>
+				<p class="hint"><kbd>Ctrl</kbd>+<kbd>O</kbd> abrir nota · <kbd>Ctrl</kbd>+<kbd>P</kbd> comandos · <kbd>Ctrl</kbd>+<kbd>T</kbd> nova aba</p>
+			</div>
+		</main>
+
+		<aside id="right">
+			<div class="resizer" id="resize-right"></div>
+			<div class="tabs"></div>
+			<div id="panel"></div>
+		</aside>
+	</div>
+	<footer id="status"></footer>
+	<div id="modal-root"></div>
+	<script src="app.js"></script>
+</body>
+</html>

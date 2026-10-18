@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 512 512" role="img" aria-label="Briefing">
+  <rect x="24" y="24" width="464" height="464" rx="110" fill="#1a1b1f"/>
+  <path d="M256 78 L434 256 L256 434 L78 256 Z" fill="none" stroke="#464852" stroke-width="10"/>
+  <path d="M256 96 L416 256 L256 256 Z" fill="#e3a43a"/>
+  <path d="M416 256 L256 416 L256 256 Z" fill="#b0761e"/>
+  <path d="M256 416 L96 256 L256 256 Z" fill="#e3a43a"/>
+  <path d="M96 256 L256 96 L256 256 Z" fill="#b0761e"/>
+</svg>

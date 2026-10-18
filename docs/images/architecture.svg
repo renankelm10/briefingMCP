@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="560" viewBox="0 0 960 560" role="img" aria-label="Briefing architecture: two computers syncing directly over an encrypted peer-to-peer connection, each with a local AI index that Claude reads through MCP">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#e3a43a"/>
+    </marker>
+    <marker id="arrowGray" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#8b8d9b"/>
+    </marker>
+    <style>
+      .t { font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; fill: #e8e9ee; }
+      .muted { fill: #9c9eac; }
+      .small { font-size: 13px; }
+      .label { font-size: 15px; font-weight: 600; }
+      .title { font-size: 18px; font-weight: 700; }
+      .box { fill: #262830; stroke: #3a3d48; stroke-width: 1.5; }
+      .inner { fill: #1d1e24; stroke: #33353e; stroke-width: 1.2; }
+      .claude { fill: #2b2420; stroke: #d97757; stroke-width: 1.5; }
+      .dht { fill: #1f2a33; stroke: #4f7da8; stroke-width: 1.5; stroke-dasharray: 6 5; }
+    </style>
+  </defs>
+
+  <rect width="960" height="560" rx="18" fill="#17181c"/>
+
+  <!-- DHT -->
+  <rect class="dht" x="330" y="26" width="300" height="70" rx="12"/>
+  <text class="t label" x="480" y="54" text-anchor="middle">Hyperswarm DHT (public)</text>
+  <text class="t small muted" x="480" y="76" text-anchor="middle">only helps the PCs find each other — no files</text>
+  <path d="M330 80 L230 132" stroke="#4f7da8" stroke-width="1.5" stroke-dasharray="5 5" fill="none" marker-end="url(#arrowGray)"/>
+  <path d="M630 80 L730 132" stroke="#4f7da8" stroke-width="1.5" stroke-dasharray="5 5" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- PC A -->
+  <rect class="box" x="30" y="136" width="360" height="300" rx="14"/>
+  <text class="t title" x="54" y="168">Your PC</text>
+  <rect class="inner" x="54" y="186" width="312" height="62" rx="10"/>
+  <text class="t label" x="72" y="212">Vault folder (.md files)</text>
+  <text class="t small muted" x="72" y="233">plain Markdown you own</text>
+  <rect class="inner" x="54" y="260" width="150" height="74" rx="10"/>
+  <text class="t label" x="70" y="288">Sync engine</text>
+  <text class="t small muted" x="70" y="308">version vectors</text>
+  <text class="t small muted" x="70" y="325">3-way merge</text>
+  <rect class="inner" x="216" y="260" width="150" height="74" rx="10"/>
+  <text class="t label" x="232" y="288">Second brain</text>
+  <text class="t small muted" x="232" y="308">local embeddings</text>
+  <text class="t small muted" x="232" y="325">+ BM25 keywords</text>
+  <rect class="claude" x="54" y="352" width="312" height="62" rx="10"/>
+  <text class="t label" x="72" y="378">Claude Code</text>
+  <text class="t small muted" x="72" y="399">MCP: search · read_note · write_note …</text>
+  <path d="M291 352 L291 336" stroke="#d97757" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- PC B -->
+  <rect class="box" x="570" y="136" width="360" height="300" rx="14"/>
+  <text class="t title" x="594" y="168">Teammate's PC</text>
+  <rect class="inner" x="594" y="186" width="312" height="62" rx="10"/>
+  <text class="t label" x="612" y="212">Same vault, identical copy</text>
+  <text class="t small muted" x="612" y="233">updated within seconds</text>
+  <rect class="inner" x="594" y="260" width="150" height="74" rx="10"/>
+  <text class="t label" x="610" y="288">Sync engine</text>
+  <text class="t small muted" x="610" y="308">version vectors</text>
+  <text class="t small muted" x="610" y="325">3-way merge</text>
+  <rect class="inner" x="756" y="260" width="150" height="74" rx="10"/>
+  <text class="t label" x="772" y="288">Second brain</text>
+  <text class="t small muted" x="772" y="308">local embeddings</text>
+  <text class="t small muted" x="772" y="325">+ BM25 keywords</text>
+  <rect class="claude" x="594" y="352" width="312" height="62" rx="10"/>
+  <text class="t label" x="612" y="378">Their Claude</text>
+  <text class="t small muted" x="612" y="399">works at the same time as yours</text>
+  <path d="M831 352 L831 336" stroke="#d97757" stroke-width="2" fill="none" marker-end="url(#arrowGray)"/>
+
+  <!-- P2P link -->
+  <path d="M366 226 L594 226" stroke="#e3a43a" stroke-width="3" fill="none" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <rect x="397" y="170" width="166" height="30" rx="15" fill="#2c2416" stroke="#e3a43a" stroke-width="1.2"/>
+  <text class="t small" x="480" y="190" text-anchor="middle" style="font-weight:600;fill:#f2c06b">direct · E2E encrypted</text>
+  <text class="t small muted" x="480" y="252" text-anchor="middle">every change,</text><text class="t small muted" x="480" y="270" text-anchor="middle">both ways</text>
+
+  <!-- footer -->
+  <text class="t small muted" x="480" y="478" text-anchor="middle">Join with an invite code (BRF-XXXX-…). Peers prove they know it before any file is exchanged.</text>
+  <text class="t small muted" x="480" y="502" text-anchor="middle">No server stores your notes. Embeddings are computed on each computer. Works on Windows, macOS and Linux.</text>
+</svg>

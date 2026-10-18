@@ -1,0 +1,51 @@
+name: Release
+
+# Create a tag like v0.3.0 and push it: installers for Windows, macOS and Linux
+# are built on their own systems and attached to a draft GitHub Release.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+          - os: macos-latest
+            target: --mac
+          - os: ubuntu-latest
+            target: --linux
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Fast tests
+        run: npm run test:fast
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+
+      - name: Build installers
+        run: |
+          node scripts/make-icon.mjs
+          node build.mjs
+          npx electron-builder ${{ matrix.target }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Unsigned builds (no paid certificates). See README > Installation.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
