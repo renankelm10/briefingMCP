@@ -4,6 +4,7 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu, protocol, net, nativeTheme, session, utilityProcess, safeStorage } = require('electron');
 const { exec } = require('child_process');
 const { TeamManager } = require('./teams');
+const background = require('./background');
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
@@ -41,7 +42,34 @@ protocol.registerSchemesAsPrivileged([
 /* ---------- configuração persistente ---------- */
 
 const configPath = () => path.join(app.getPath('userData'), 'briefing.json');
-let config = { lastVault: null, bounds: null, maximized: false };
+// background: fechar a janela mantém o app na bandeja, sincronizando (padrão: sim)
+let config = { lastVault: null, bounds: null, maximized: false, background: true };
+let appQuitting = false;
+let tray = null;
+const APP_ROOT = path.join(__dirname, '..', '..');
+const isSmoke = () => !app.isPackaged && !!process.env.BRIEFING_SMOKE_SHOT;
+
+function showWindow() {
+	if (!win) return createWindow();
+	if (win.isMinimized()) win.restore();
+	win.show();
+	win.focus();
+}
+
+function appPrefs() {
+	return { background: config.background !== false, openAtLogin: background.isOpenAtLogin(APP_ROOT) };
+}
+
+function setAppPref(key, value) {
+	if (key === 'background') {
+		config.background = !!value;
+		saveConfig();
+	} else if (key === 'openAtLogin') {
+		background.setOpenAtLogin(!!value, APP_ROOT);
+	}
+	tray?.refresh();
+	return appPrefs();
+}
 
 function loadConfig() {
 	try {
@@ -459,9 +487,19 @@ function startTeams() {
 	});
 	for (const f of teams.folders()) trust(f.folder);
 	teams.on('changed', sendTeamsSoon);
-	teams.on('event', (event) => win?.webContents.send('teams:event', event));
+	teams.on('event', (event) => {
+		win?.webContents.send('teams:event', event);
+		// Com o app escondido na bandeja, avisos importantes viram notificação do sistema.
+		const away = !win || !win.isVisible() || !win.isFocused();
+		if (away && (event.kind === 'conflict' || event.kind === 'rejected')) {
+			background.notify(`Briefing · ${event.team}`, event.text, showWindow);
+		}
+	});
 	teams.startAll().then(sendTeams);
 }
+
+handle('app:prefs-get', () => appPrefs());
+handle('app:prefs-set', (key, value) => setAppPref(String(key), value));
 
 handle('teams:info', () => teams.info());
 const assertTrusted = (dir) => {
@@ -593,6 +631,8 @@ function buildMenu() {
 	]);
 }
 
+const startHidden = background.startedHidden();
+
 function createWindow() {
 	win = new BrowserWindow({
 		width: config.bounds?.width ?? 1280,
@@ -634,12 +674,27 @@ function createWindow() {
 	// BRIEFING_SMOKE_HIDDEN (só em desenvolvimento): segundo app de teste roda sem janela visível
 	win.once('ready-to-show', () => {
 		if (!app.isPackaged && process.env.BRIEFING_SMOKE_HIDDEN) return;
+		if (startHidden) return; // iniciado com o sistema: fica só na bandeja
 		win.show();
 	});
-	win.on('close', () => {
+	win.on('close', (event) => {
 		config.maximized = win.isMaximized();
 		if (!config.maximized) config.bounds = win.getBounds();
 		saveConfig();
+		// Fechar só esconde: a equipe continua sincronizando em segundo plano.
+		if (!appQuitting && config.background !== false && !isSmoke()) {
+			event.preventDefault();
+			win.hide();
+			if (!config.trayHintShown) {
+				config.trayHintShown = true;
+				saveConfig();
+				background.notify(
+					'O Briefing continua sincronizando',
+					'Ele fica na bandeja do sistema, perto do relógio. Para sair de vez, use "Sair do Briefing" no menu do ícone.',
+					showWindow,
+				);
+			}
+		}
 	});
 	win.on('closed', () => {
 		win = null;
@@ -684,11 +739,8 @@ function createWindow() {
 if (!app.requestSingleInstanceLock()) {
 	app.quit();
 } else {
-	app.on('second-instance', () => {
-		if (!win) return;
-		if (win.isMinimized()) win.restore();
-		win.focus();
-	});
+	// Abrir o Briefing de novo (atalho, menu Iniciar) mostra a janela que estava na bandeja.
+	app.on('second-instance', () => showWindow());
 
 	app.whenReady().then(async () => {
 		loadConfig();
@@ -730,11 +782,26 @@ if (!app.requestSingleInstanceLock()) {
 		createWindow();
 		startTeams();
 		startBrain();
+		if (!isSmoke()) {
+			tray = background.createTray({
+				icon: ICON,
+				showWindow,
+				getTeams: () => teams?.info(),
+				setAllPaused: async (paused) => {
+					for (const t of teams.info().teams) await teams.setPaused(t.id, paused);
+				},
+				prefs: appPrefs,
+				setPref: setAppPref,
+				quit: () => app.quit(),
+			});
+			teams.on('changed', () => tray?.refresh());
+		}
 	});
 
 	// Encerra a sincronização com calma (grava o estado) antes de sair.
 	let quitting = false;
 	app.on('before-quit', (event) => {
+		appQuitting = true;
 		if (quitting) return;
 		quitting = true;
 		event.preventDefault();
@@ -753,6 +820,6 @@ if (!app.requestSingleInstanceLock()) {
 		app.quit();
 	});
 	app.on('activate', () => {
-		if (!win && app.isReady()) createWindow();
+		if (app.isReady()) showWindow();
 	});
 }

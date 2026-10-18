@@ -25,6 +25,10 @@ contextBridge.exposeInMainWorld('briefing', {
 	exportPdf: invoke('export:pdf'),
 	setTheme: invoke('theme:set'),
 	openFolder: invoke('vault:open-folder'),
+	app: {
+		prefs: invoke('app:prefs-get'),
+		setPref: invoke('app:prefs-set'),
+	},
 	brain: {
 		search: invoke('brain:search'),
 		stats: invoke('brain:stats'),

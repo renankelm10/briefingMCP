@@ -92,7 +92,7 @@ Tải phiên bản mới nhất cho hệ thống của bạn tại **[Releases](
 
 | Hệ thống | Tệp | Ghi chú |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | Chưa được ký số: ở cảnh báo SmartScreen, nhấp **Thông tin thêm → Vẫn chạy**. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | Chưa được ký số: ở cảnh báo SmartScreen, nhấp **Thông tin thêm → Vẫn chạy**. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | Chưa được công chứng: nhấp chuột phải vào ứng dụng → **Mở**, hoặc chạy `xattr -dr com.apple.quarantine /Applications/Briefing.app`. Mac dùng chip Intel: hãy build từ mã nguồn. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. Trên Ubuntu 24.04+ nên dùng `.deb` (`sudo apt install ./briefing_*.deb`), gói này cấu hình sandbox của Chromium. |
 

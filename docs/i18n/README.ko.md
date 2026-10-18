@@ -92,7 +92,7 @@ Briefing은 **중간에 클라우드 서비스 없이 하나의 공유 지식 �
 
 | 시스템 | 파일 | 참고 |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | 아직 코드 서명되지 않았습니다: SmartScreen 경고에서 **추가 정보 → 실행**을 클릭하세요. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | 아직 코드 서명되지 않았습니다: SmartScreen 경고에서 **추가 정보 → 실행**을 클릭하세요. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | 아직 공증되지 않았습니다: 앱을 우클릭 → **열기**, 또는 `xattr -dr com.apple.quarantine /Applications/Briefing.app`를 실행하세요. Intel Mac은 소스에서 빌드하세요. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. Ubuntu 24.04 이상에서는 Chromium 샌드박스를 설정해 주는 `.deb`(`sudo apt install ./briefing_*.deb`)를 권장합니다. |
 

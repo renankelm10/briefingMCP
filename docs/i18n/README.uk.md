@@ -92,7 +92,7 @@ Briefing — це настільний застосунок для нотато�
 
 | Система | Файл | Примітки |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | Поки без цифрового підпису: у попередженні SmartScreen натисніть **Докладніше → Усе одно запустити**. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | Поки без цифрового підпису: у попередженні SmartScreen натисніть **Докладніше → Усе одно запустити**. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | Поки без нотаризації: клацніть застосунок правою кнопкою → **Відкрити** або виконайте `xattr -dr com.apple.quarantine /Applications/Briefing.app`. Mac на Intel: зберіть із вихідного коду. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. На Ubuntu 24.04+ краще `.deb` (`sudo apt install ./briefing_*.deb`) — він налаштовує пісочницю Chromium. |
 

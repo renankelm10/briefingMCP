@@ -92,7 +92,7 @@ Briefing 是一款桌面笔记应用，面向希望拥有**共享知识库、但
 
 | 系统 | 文件 | 说明 |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | 尚未进行代码签名：在 SmartScreen 警告中点击 **更多信息 → 仍要运行**。 |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | 尚未进行代码签名：在 SmartScreen 警告中点击 **更多信息 → 仍要运行**。 |
 | macOS 12+（Apple Silicon） | `Briefing-x.y.z-arm64.dmg` | 尚未公证：右键点击应用 → **打开**，或运行 `xattr -dr com.apple.quarantine /Applications/Briefing.app`。Intel 芯片的 Mac：请从源码构建。 |
 | Linux（x64） | `Briefing-x.y.z.AppImage` / `.deb` | AppImage：`chmod +x Briefing-*.AppImage`。在 Ubuntu 24.04+ 上建议使用 `.deb`（`sudo apt install ./briefing_*.deb`），它会配置 Chromium 沙箱。 |
 

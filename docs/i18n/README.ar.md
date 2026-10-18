@@ -94,7 +94,7 @@ Briefing تطبيق ملاحظات لسطح المكتب مصمَّم للفرق
 
 | النظام | الملف | ملاحظات |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | غير موقَّع رقميًا بعد: في تحذير SmartScreen انقر **مزيد من المعلومات ← التشغيل على أي حال**. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | غير موقَّع رقميًا بعد: في تحذير SmartScreen انقر **مزيد من المعلومات ← التشغيل على أي حال**. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | غير موثَّق من Apple بعد: انقر بزر الفأرة الأيمن على التطبيق ← **فتح**، أو نفّذ `xattr -dr com.apple.quarantine /Applications/Briefing.app`. أجهزة Mac بمعالج Intel: ابنِ من الشيفرة المصدرية. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. على Ubuntu 24.04 وما بعده يُفضَّل ملف `.deb` (`sudo apt install ./briefing_*.deb`) لأنه يضبط بيئة Chromium المعزولة. |
 

@@ -92,7 +92,7 @@ Unduh versi terbaru untuk sistem Anda dari **[Releases](https://github.com/renan
 
 | Sistem | Berkas | Catatan |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | Belum ditandatangani: pada peringatan SmartScreen klik **Info selengkapnya → Tetap jalankan**. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | Belum ditandatangani: pada peringatan SmartScreen klik **Info selengkapnya → Tetap jalankan**. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | Belum dinotarisasi: klik kanan aplikasi → **Buka**, atau jalankan `xattr -dr com.apple.quarantine /Applications/Briefing.app`. Mac Intel: bangun dari kode sumber. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. Di Ubuntu 24.04+ sebaiknya gunakan `.deb` (`sudo apt install ./briefing_*.deb`), yang mengatur sandbox Chromium. |
 

@@ -92,7 +92,7 @@ Briefing は、**間にクラウドサービスを挟まずに、ひとつの共
 
 | システム | ファイル | 備考 |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | まだコード署名されていません：SmartScreen の警告で **詳細情報 → 実行** をクリックします。 |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | まだコード署名されていません：SmartScreen の警告で **詳細情報 → 実行** をクリックします。 |
 | macOS 12+（Apple Silicon） | `Briefing-x.y.z-arm64.dmg` | まだ公証されていません：アプリを右クリック → **開く**、または `xattr -dr com.apple.quarantine /Applications/Briefing.app` を実行します。Intel Mac はソースからビルドしてください。 |
 | Linux（x64） | `Briefing-x.y.z.AppImage` / `.deb` | AppImage：`chmod +x Briefing-*.AppImage`。Ubuntu 24.04 以降では Chromium のサンドボックスを設定する `.deb`（`sudo apt install ./briefing_*.deb`）がおすすめです。 |
 

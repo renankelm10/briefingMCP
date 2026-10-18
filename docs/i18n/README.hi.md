@@ -92,7 +92,7 @@ Briefing एक डेस्कटॉप नोट्स ऐप है, उन �
 
 | सिस्टम | फ़ाइल | नोट |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | अभी कोड‑साइन नहीं है: SmartScreen चेतावनी में **More info → Run anyway** पर क्लिक करें। |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | अभी कोड‑साइन नहीं है: SmartScreen चेतावनी में **More info → Run anyway** पर क्लिक करें। |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | अभी नोटराइज़्ड नहीं है: ऐप पर राइट‑क्लिक → **Open**, या `xattr -dr com.apple.quarantine /Applications/Briefing.app` चलाएँ। Intel Mac: सोर्स से बिल्ड करें। |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. Ubuntu 24.04+ पर `.deb` बेहतर है (`sudo apt install ./briefing_*.deb`), जो Chromium सैंडबॉक्स सेट करता है। |
 

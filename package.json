@@ -104,6 +104,7 @@
       "icon": "build/icon.png"
     },
     "nsis": {
+      "artifactName": "Briefing-Setup-${version}.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
@@ -122,6 +123,7 @@
           "arch": ["arm64"]
         }
       ],
+      "artifactName": "Briefing-${version}-${arch}.${ext}",
       "category": "public.app-category.productivity",
       "icon": "build/icon.png",
       "identity": null,
@@ -132,6 +134,7 @@
         "AppImage",
         "deb"
       ],
+      "artifactName": "Briefing-${version}.${ext}",
       "category": "Office",
       "icon": "build/icon.png",
       "maintainer": "Renan Kelm <renankelm10@gmail.com>",

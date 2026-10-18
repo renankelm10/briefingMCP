@@ -1707,6 +1707,36 @@ function openSettings() {
 			body.append(row);
 		}
 	}
+	// Preferências do app neste computador (não do vault)
+	body.append(el('div', 'settings-section', 'Sistema (este computador)'));
+	const systemToggle = (key, label, hint) => {
+		const row = el('div', 'setting');
+		const info = el('div', 'setting-info');
+		info.append(el('div', 'setting-label', label), el('div', 'setting-hint', hint));
+		const wrap = el('label', 'switch');
+		const input = el('input');
+		input.type = 'checkbox';
+		input.disabled = true;
+		input.onchange = async () => {
+			const prefs = await api.app.setPref(key, input.checked);
+			input.checked = !!prefs[key];
+		};
+		wrap.append(input, el('span', 'slider'));
+		row.append(info, wrap);
+		body.append(row);
+		return input;
+	};
+	const bgToggle = systemToggle(
+		'background',
+		'Continuar em segundo plano ao fechar',
+		'Fechar a janela deixa o Briefing na bandeja do sistema, sincronizando com a equipe',
+	);
+	const loginToggle = systemToggle('openAtLogin', 'Iniciar com o sistema', 'Abre minimizado na bandeja quando você liga o computador');
+	api.app.prefs().then((prefs) => {
+		bgToggle.checked = prefs.background;
+		loginToggle.checked = prefs.openAtLogin;
+		bgToggle.disabled = loginToggle.disabled = false;
+	});
 	body.append(el('div', 'settings-section', 'Sobre'));
 	body.append(
 		el(

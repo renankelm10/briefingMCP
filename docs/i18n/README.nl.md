@@ -92,7 +92,7 @@ Download de nieuwste versie voor je systeem via **[Releases](https://github.com/
 
 | Systeem | Bestand | Opmerkingen |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | Nog niet ondertekend: klik in de SmartScreen-waarschuwing op **Meer informatie → Toch uitvoeren**. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | Nog niet ondertekend: klik in de SmartScreen-waarschuwing op **Meer informatie → Toch uitvoeren**. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | Nog niet genotariseerd: rechtsklik op de app → **Open**, of voer `xattr -dr com.apple.quarantine /Applications/Briefing.app` uit. Intel-Macs: bouw vanaf de broncode. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. Gebruik op Ubuntu 24.04+ liever de `.deb` (`sudo apt install ./briefing_*.deb`), die de Chromium-sandbox instelt. |
 

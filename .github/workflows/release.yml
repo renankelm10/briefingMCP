@@ -1,7 +1,9 @@
 name: Release
 
-# Create a tag like v0.3.0 and push it: installers for Windows, macOS and Linux
-# are built on their own systems and attached to a draft GitHub Release.
+# Create a tag like v0.3.1 and push it: installers for Windows, macOS and Linux are built on
+# their own systems and attached to a draft GitHub Release.
+# Windows builds are code-signed through SignPath Foundation (free for open source) once the
+# SIGNPATH_API_TOKEN secret exists — see docs/code-signing.md. Without it they stay unsigned.
 on:
   push:
     tags: ['v*']
@@ -9,6 +11,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 jobs:
   build:
@@ -19,16 +22,26 @@ jobs:
         include:
           - os: windows-latest
             target: --win
+            files: |
+              release/*.exe
           - os: macos-latest
             target: --mac
+            files: |
+              release/*.dmg
+              release/*.zip
           - os: ubuntu-latest
             target: --linux
+            files: |
+              release/*.AppImage
+              release/*.deb
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
+    env:
+      SIGNPATH_TOKEN: ${{ secrets.SIGNPATH_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -41,11 +54,59 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
       - name: Build installers
+        shell: bash
         run: |
           node scripts/make-icon.mjs
           node build.mjs
-          npx electron-builder ${{ matrix.target }} --publish always
+          npx electron-builder ${{ matrix.target }} --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # Unsigned builds (no paid certificates). See README > Installation.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      # ---------- Windows code signing (SignPath Foundation) ----------
+      - name: Upload unsigned Windows installer for signing
+        id: unsigned
+        if: runner.os == 'Windows' && env.SIGNPATH_TOKEN != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-windows-installer
+          path: release/*.exe
+          if-no-files-found: error
+
+      - name: Sign with SignPath
+        if: runner.os == 'Windows' && env.SIGNPATH_TOKEN != ''
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          github-artifact-id: ${{ steps.unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: release-signed
+
+      - name: Use the signed installer
+        if: runner.os == 'Windows' && env.SIGNPATH_TOKEN != ''
+        shell: bash
+        run: |
+          rm -f release/*.exe
+          cp release-signed/*.exe release/
+          ls -la release/*.exe
+
+      # ---------- Publish ----------
+      - name: Checksums
+        shell: bash
+        run: |
+          cd release
+          for f in *.exe *.dmg *.zip *.AppImage *.deb; do
+            [ -f "$f" ] || continue
+            if command -v sha256sum >/dev/null; then sha256sum "$f"; else shasum -a 256 "$f"; fi
+          done > SHA256SUMS-${{ runner.os }}.txt
+          cat SHA256SUMS-${{ runner.os }}.txt
+
+      - name: Attach to draft release
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: |
+            ${{ matrix.files }}
+            release/SHA256SUMS-*.txt

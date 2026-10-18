@@ -92,7 +92,7 @@ Briefing เป็นแอปจดโน้ตบนเดสก์ท็อ�
 
 | ระบบ | ไฟล์ | หมายเหตุ |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | ยังไม่ได้ลงนามโค้ด: ในคำเตือนของ SmartScreen ให้คลิก **ข้อมูลเพิ่มเติม → เรียกใช้ต่อไป** |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | ยังไม่ได้ลงนามโค้ด: ในคำเตือนของ SmartScreen ให้คลิก **ข้อมูลเพิ่มเติม → เรียกใช้ต่อไป** |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | ยังไม่ผ่านการรับรอง (notarize): คลิกขวาที่แอป → **เปิด** หรือรัน `xattr -dr com.apple.quarantine /Applications/Briefing.app` สำหรับ Mac ชิป Intel ให้ build จากซอร์สโค้ด |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage` บน Ubuntu 24.04 ขึ้นไปแนะนำให้ใช้ `.deb` (`sudo apt install ./briefing_*.deb`) ซึ่งจะตั้งค่า sandbox ของ Chromium ให้ |
 

@@ -64,6 +64,8 @@ create a new team and move to it.
 - Files are stored **unencrypted on disk** (they are your normal Markdown files). Use full-disk encryption.
 - The public DHT reveals the IP addresses of online peers to anyone who knows the topic.
 - `ELECTRON_RUN_AS_NODE` stays enabled because the packaged MCP server runs through the Briefing executable.
-- Release builds are **not code-signed** yet (no paid certificates); verify the SHA-256 shown on the release page.
+- Windows installers are signed through [SignPath Foundation](https://signpath.org) once the project is
+  approved (see [docs/code-signing.md](docs/code-signing.md)); until then, and on macOS, builds are
+  unsigned. Always verify the SHA-256 in `SHA256SUMS-*.txt` on the release page.
 - Trust model is "everyone with the code is a full member". There are no per-user permissions or member removal
   other than creating a new team.

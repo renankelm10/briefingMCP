@@ -92,7 +92,7 @@ Téléchargez la dernière version pour votre système depuis **[Releases](https
 
 | Système | Fichier | Remarques |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | Pas encore signé : sur l'avertissement SmartScreen, cliquez sur **Informations complémentaires → Exécuter quand même**. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | Pas encore signé : sur l'avertissement SmartScreen, cliquez sur **Informations complémentaires → Exécuter quand même**. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | Pas encore notarisé : clic droit sur l'app → **Ouvrir**, ou exécutez `xattr -dr com.apple.quarantine /Applications/Briefing.app`. Mac Intel : compilez depuis les sources. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage : `chmod +x Briefing-*.AppImage`. Sur Ubuntu 24.04+, préférez le `.deb` (`sudo apt install ./briefing_*.deb`), qui configure la sandbox de Chromium. |
 

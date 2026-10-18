@@ -92,7 +92,7 @@ Sisteminiz için en son sürümü **[Releases](https://github.com/renankelm10/br
 
 | Sistem | Dosya | Notlar |
 |---|---|---|
-| Windows 10/11 | `Briefing Setup x.y.z.exe` | Henüz imzalı değil: SmartScreen uyarısında **Ek bilgi → Yine de çalıştır**'a tıklayın. |
+| Windows 10/11 | `Briefing-Setup-x.y.z.exe` | Henüz imzalı değil: SmartScreen uyarısında **Ek bilgi → Yine de çalıştır**'a tıklayın. |
 | macOS 12+ (Apple Silicon) | `Briefing-x.y.z-arm64.dmg` | Henüz noter onaylı değil: uygulamaya sağ tıklayın → **Aç** ya da `xattr -dr com.apple.quarantine /Applications/Briefing.app` komutunu çalıştırın. Intel Mac: kaynak koddan derleyin. |
 | Linux (x64) | `Briefing-x.y.z.AppImage` / `.deb` | AppImage: `chmod +x Briefing-*.AppImage`. Ubuntu 24.04+ sürümlerinde Chromium sandbox'ını ayarlayan `.deb` paketini tercih edin (`sudo apt install ./briefing_*.deb`). |
 
