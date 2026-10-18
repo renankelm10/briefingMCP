@@ -178,6 +178,16 @@ On macOS use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd>.
 - Per‑member permissions and team key rotation
 - Signed and notarized installers
 
+## Code signing policy
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Windows installers are built from this repository by GitHub Actions ([release.yml](.github/workflows/release.yml)) and signed only from those builds.
+- Committers and reviewers: [renankelm10](https://github.com/renankelm10)
+- Approvers (each signing request): [renankelm10](https://github.com/renankelm10)
+
+**Privacy:** Briefing has no account, server or telemetry. It connects to other systems only for features the user turns on: the Hyperswarm DHT to find teammates of a team folder the user created or joined (file contents travel end‑to‑end encrypted, directly between those teammates), and Hugging Face to download the AI model once. See [SECURITY.md](SECURITY.md).
+
 ## Contributing
 
 Issues and pull requests are welcome. See **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, tests and project layout.
