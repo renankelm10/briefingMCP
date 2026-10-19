@@ -30,7 +30,7 @@ Briefing is a desktop notes app for teams who want **one shared knowledge base w
 
 - 📝 **Write** in plain Markdown files that live in a normal folder on your computer (your "vault").
 - 🔄 **Share** a folder with your team: every computer keeps an identical copy, and changes travel **directly between the computers**, end‑to‑end encrypted, within seconds.
-- 🧠 **Ask** anything: every note is indexed by an AI model that runs **on your own machine**, and **Claude** (or any MCP client) can search, read and write your notes through a built‑in MCP server.
+- 🧠 **Ask** anything: every note is indexed **on your own machine**, and **Claude** (or any MCP client) can search, read and write your notes through a built‑in MCP server. Optional AI search by meaning runs locally too.
 
 The result: you and a teammate can each work with your own Claude at the same time, on the same company knowledge, and both of you always see the latest version.
 
@@ -43,7 +43,7 @@ The result: you and a teammate can each work with your own Claude at the same ti
 1. **You create a team** and pick a folder. Briefing generates an invite code like `BRF-7Q2M-…`.
 2. **Your teammate pastes the code.** Both computers find each other through the public [Hyperswarm](https://github.com/holepunchto/hyperswarm) DHT — used *only* for discovery — and open a direct, Noise‑encrypted connection. Each side proves it knows the code before a single file is exchanged.
 3. **Every change is sent immediately**, whether you typed it, your teammate typed it, or a Claude wrote it. Concurrent edits are merged line‑by‑line (like Git); if two people change the same lines, the other version is saved as a *conflict copy*, identical on every computer — nothing is lost.
-4. **Each computer indexes the notes locally** (multilingual embeddings + keyword search). Claude queries the index through MCP and gets the most relevant passages in milliseconds.
+4. **Each computer indexes the notes locally** (keyword search, plus multilingual embeddings if you turn on search by meaning). Claude queries the index through MCP and gets the most relevant passages in milliseconds.
 
 ## Features
 
@@ -61,7 +61,7 @@ The result: you and a teammate can each work with your own Claude at the same ti
 <td><img src="docs/images/05-brain-claude.png" alt="Connect Claude"></td>
 </tr>
 <tr>
-<td><b>Second brain.</b> <kbd>Ctrl</kbd>+<kbd>J</kbd> asks a question in natural language. Hybrid search (meaning + exact words), fully offline after the first model download.</td>
+<td><b>Second brain.</b> <kbd>Ctrl</kbd>+<kbd>J</kbd> asks a question in natural language. Keyword search by default; turn on <i>search by meaning</i> in Settings → System for hybrid search with a local AI model (~120 MB download, about 0.5–1 GB of memory while in use).</td>
 <td><b>Claude via MCP.</b> One click registers the MCP server in Claude Code. Claude gets <code>search</code>, <code>read_note</code>, <code>write_note</code> and more.</td>
 </tr>
 <tr>
@@ -135,7 +135,7 @@ Restart Claude Code. The server exposes your open vault and every team folder:
 
 | Tool | What it does |
 |---|---|
-| `search` | Hybrid semantic + keyword search; returns the most relevant passages with file and line |
+| `search` | Keyword search, plus semantic search when enabled in the app; returns the most relevant passages with file and line |
 | `read_note` | Full content of a note (by path or just by name) |
 | `list_notes` | Notes in a vault or folder, with modification time |
 | `recent_changes` | Recently modified notes — including changes that arrived from teammates |
@@ -148,7 +148,7 @@ Any MCP client that supports stdio servers works the same way. Use `BRIEFING_VAU
 
 - No account, no server, no telemetry. Notes are plain files on your disk. The only automatic request is the update check to GitHub (can be turned off).
 - Sync connections are end‑to‑end encrypted and authenticated with the invite code; files from the network can never be written outside the shared folder, and executables received from others are never opened by Briefing.
-- Embeddings are computed locally; the model (`multilingual-e5-small`, ~120 MB) is downloaded once from Hugging Face.
+- Search by meaning is **off by default**. When on, embeddings are computed locally; the model (`multilingual-e5-small`, ~120 MB) is downloaded once from Hugging Face and leaves memory after 5 idle minutes.
 - MCP responses mark note content as untrusted data to reduce prompt‑injection risk.
 
 Read the full threat model in **[SECURITY.md](SECURITY.md)**. Report vulnerabilities privately.
@@ -169,7 +169,7 @@ On macOS use <kbd>⌘</kbd> instead of <kbd>Ctrl</kbd>.
 
 **Is this Obsidian?** No. Briefing is an independent, open‑source project written from scratch. It is compatible with plain Markdown folders, so you can open an existing vault, but it is not affiliated with or endorsed by Obsidian.
 
-**Does it need the internet?** Only to find teammates (the DHT) and to download the AI model once. Notes, search and Claude access work offline.
+**Does it need the internet?** Only to find teammates (the DHT), to check for updates and, if you turn on search by meaning, to download the AI model once. Notes, search and Claude access work offline.
 
 **What happens if two people edit the same note?** Different parts are merged automatically. If the same lines change, both versions are kept: one in the note, the other in a `(conflito de …)` copy next to it.
 
@@ -191,7 +191,7 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 - Committers and reviewers: [renankelm10](https://github.com/renankelm10)
 - Approvers (each signing request): [renankelm10](https://github.com/renankelm10)
 
-**Privacy:** Briefing has no account, server or telemetry. It connects to other systems only for: the Hyperswarm DHT to find teammates of a team folder the user created or joined (file contents travel end‑to‑end encrypted, directly between those teammates), Hugging Face to download the AI model once, and GitHub to check for app updates (can be turned off in Settings). See [SECURITY.md](SECURITY.md).
+**Privacy:** Briefing has no account, server or telemetry. It connects to other systems only for: the Hyperswarm DHT to find teammates of a team folder the user created or joined (file contents travel end‑to‑end encrypted, directly between those teammates), Hugging Face to download the AI model once (only if search by meaning is turned on), and GitHub to check for app updates (can be turned off in Settings). See [SECURITY.md](SECURITY.md).
 
 ## Contributing
 

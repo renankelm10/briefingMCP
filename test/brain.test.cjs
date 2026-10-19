@@ -74,4 +74,26 @@ test('busca híbrida encontra por significado e por palavra', { timeout: 600_000
 	const reloaded = new Brain({ folder: dir, embedder });
 	await reloaded.load();
 	assert.strictEqual(reloaded.stats().chunks, brain.stats().chunks);
+
+	// modelo descarregado por ociosidade: a próxima busca o traz de volta e continua por significado
+	await embedder.unload();
+	assert.strictEqual(embedder.loaded, false);
+	const again = await brain.search('quanto o cliente da padaria paga por mês?');
+	assert.strictEqual(again[0].path, 'Clientes/Padaria Pão Quente.md');
+	assert.ok(again[0].matchedBy.includes('significado'), 'deveria usar o modelo recarregado');
+});
+
+test('com a busca por significado desligada, não carrega o modelo e busca por palavras', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'briefing-off-'));
+	write(dir, 'Clientes/Padaria.md', '# Padaria\n\nPagamento mensal de R$ 2.500.\n');
+	const embedder = new Embedder({ enabled: () => false });
+	const brain = new Brain({ folder: dir, embedder, log: () => {} });
+	await brain.refresh();
+	const hits = await brain.search('pagamento da padaria');
+	assert.strictEqual(hits[0]?.path, 'Clientes/Padaria.md');
+	assert.deepStrictEqual(hits[0].matchedBy, ['palavras']);
+	assert.strictEqual(embedder.loaded, false);
+	assert.strictEqual(embedder.loading, null, 'o modelo não deve nem começar a carregar');
+	assert.ok(brain.stats().semanticOff);
+	assert.strictEqual(brain.stats().embedded, 0);
 });

@@ -39,7 +39,7 @@ class Brain {
 	// para sempre: depois de um tempo, tenta de novo.
 	semanticReady() {
 		if (this.embedError && Date.now() - this.embedErrorAt > EMBED_RETRY_MS) this.embedError = null;
-		return !!this.embedder && !this.embedError;
+		return !!this.embedder && this.embedder.enabled !== false && !this.embedError;
 	}
 
 	failEmbed(err) {
@@ -142,8 +142,8 @@ class Brain {
 	// Prepara a busca sem bloquear: primeiro o texto (rápido), depois o modelo e os vetores.
 	warmup() {
 		return this.refresh({ embed: false })
-			.then(() => this.embedder?.load())
-			.then(() => this.refresh())
+			.then(() => this.semanticReady() && this.embedder.load())
+			.then(() => this.semanticReady() && this.refresh())
 			.catch((err) => this.failEmbed(err));
 	}
 
@@ -230,8 +230,20 @@ class Brain {
 	async search(query, { limit = 8, pathPrefix = '' } = {}) {
 		// Nunca deixa uma consulta esperando o download do modelo (o Claude desiste em 60 s):
 		// sem modelo pronto, responde por palavras e o carregamento segue em segundo plano.
-		const modelReady = !!this.embedder?.loaded;
-		if (!modelReady && this.semanticReady()) this.embedder.load().catch((err) => this.failEmbed(err));
+		let modelReady = !!this.embedder?.loaded;
+		if (!modelReady && this.semanticReady()) {
+			if (this.embedder.cached) {
+				// Já esteve na memória (foi descarregado por ociosidade): volta do disco em ~1 s.
+				try {
+					await this.embedder.load();
+					modelReady = true;
+				} catch (err) {
+					this.failEmbed(err);
+				}
+			} else {
+				this.embedder.load().catch((err) => this.failEmbed(err));
+			}
+		}
 		// Uma indexação só de texto em andamento (ex.: a da inicialização) é rápida: espera por ela,
 		// senão a busca roda num índice ainda vazio. Só não espera vetores enquanto o modelo carrega.
 		if (modelReady || !this.refreshing || !this.refreshingEmbeds) await this.refresh({ maxAge: 3000, embed: modelReady });
@@ -286,6 +298,7 @@ class Brain {
 			embedded: this.chunks.filter((c) => c.embedded).length,
 			model: this.model,
 			semantic: this.semanticReady(),
+			semanticOff: this.embedder?.enabled === false, // desligada nas configurações (não é erro)
 			error: this.embedError?.message ?? null,
 			updatedAt: this.updatedAt,
 		};

@@ -60,7 +60,22 @@ function discoverVaults() {
 		.map((v) => ({ ...v, folder: path.resolve(v.folder), name: v.team || path.basename(v.folder) }));
 }
 
-const embedder = new Embedder({ log });
+// Busca por significado: segue a opção do app (Configurações → Sistema), salva em briefing.json.
+// Desligada (padrão), o modelo de IA nem é carregado e a busca é por palavras.
+// BRIEFING_SEMANTIC=1/0 força o modo (testes e uso sem o app).
+let semanticCache = { mtime: -1, on: false };
+function semanticOn() {
+	if (process.env.BRIEFING_SEMANTIC) return process.env.BRIEFING_SEMANTIC === '1';
+	const file = path.join(APP_DATA, 'briefing.json');
+	let mtime = 0;
+	try {
+		mtime = fs.statSync(file).mtimeMs;
+	} catch {}
+	if (mtime !== semanticCache.mtime) semanticCache = { mtime, on: readJson(file)?.semanticSearch === true };
+	return semanticCache.on;
+}
+
+const embedder = new Embedder({ log, enabled: semanticOn });
 const brains = new Map();
 
 function vaults() {
@@ -139,7 +154,7 @@ server.registerTool(
 	{
 		title: 'Buscar no segundo cérebro',
 		description:
-			'Busca nas notas da empresa (vault do Briefing) por significado e por palavras. Use primeiro para qualquer pergunta sobre clientes, projetos, processos, decisões ou histórico. Retorna os trechos mais relevantes com o caminho da nota.',
+			'Busca nas notas da empresa (vault do Briefing) por palavras e, se ativada no app, também por significado. Use primeiro para qualquer pergunta sobre clientes, projetos, processos, decisões ou histórico. Retorna os trechos mais relevantes com o caminho da nota. Se não achar, tente sinônimos e termos relacionados (ex.: "mensalidade", "pagamento", "valor").',
 		inputSchema: {
 			query: z.string().describe('Pergunta ou termos, em linguagem natural'),
 			limit: z.number().int().min(1).max(30).optional().describe('Quantidade de trechos (padrão 8)'),
@@ -273,7 +288,9 @@ server.registerTool(
 			const brain = brains.get(v.folder);
 			if (!brain.refreshing) await brain.refresh({ maxAge: 3000, embed: embedder.loaded });
 			const s = brain.stats();
-			const semantic = !s.semantic
+			const semantic = s.semanticOff
+				? 'desligada (pode ser ativada no app em Configurações → Sistema) — usando busca por palavras'
+				: !s.semantic
 				? `indisponível (${s.error ?? 'modelo não carregado'}) — usando busca por palavras`
 				: embedder.loaded
 					? 'ativa'

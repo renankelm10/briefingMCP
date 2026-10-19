@@ -72,6 +72,7 @@ function appPrefs() {
 		background: config.background !== false,
 		openAtLogin: background.isOpenAtLogin(APP_ROOT),
 		autoUpdate: config.autoUpdate !== false,
+		semanticSearch: config.semanticSearch === true,
 		version: app.getVersion(),
 		update: updater.state,
 	};
@@ -82,6 +83,11 @@ function setAppPref(key, value) {
 		config[key] = !!value;
 		saveConfig();
 		if (key === 'autoUpdate' && value) updater.check();
+	} else if (key === 'semanticSearch') {
+		// Lido também pelo servidor MCP (briefing.json): o Claude passa a usar o mesmo modo.
+		config.semanticSearch = !!value;
+		saveConfig();
+		brainProc?.postMessage({ type: 'semantic', on: config.semanticSearch });
 	} else if (key === 'openAtLogin') {
 		background.setOpenAtLogin(!!value, APP_ROOT);
 	}
@@ -418,6 +424,7 @@ function startBrain() {
 		if (code) console.error('[cérebro] processo encerrou com código', code);
 		brainProc = null;
 	});
+	brainProc.postMessage({ type: 'semantic', on: config.semanticSearch === true });
 	syncBrainFolders();
 }
 

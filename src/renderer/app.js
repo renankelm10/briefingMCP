@@ -1732,6 +1732,11 @@ function openSettings() {
 		'Fechar a janela deixa o Briefing na bandeja do sistema, sincronizando com a equipe',
 	);
 	const loginToggle = systemToggle('openAtLogin', 'Iniciar com o sistema', 'Abre minimizado na bandeja quando você liga o computador');
+	const semanticToggle = systemToggle(
+		'semanticSearch',
+		'Busca por significado (IA local)',
+		'Acha notas pelo sentido, não só pelas palavras, no app e no Claude. Usa um modelo de IA neste computador: ~120 MB de download e até ~1 GB de memória enquanto em uso. Desligada, a busca é só por palavras.',
+	);
 	const updateToggle = systemToggle(
 		'autoUpdate',
 		'Atualizar automaticamente',
@@ -1772,7 +1777,8 @@ function openSettings() {
 		bgToggle.checked = prefs.background;
 		loginToggle.checked = prefs.openAtLogin;
 		updateToggle.checked = prefs.autoUpdate;
-		bgToggle.disabled = loginToggle.disabled = updateToggle.disabled = false;
+		semanticToggle.checked = prefs.semanticSearch;
+		bgToggle.disabled = loginToggle.disabled = updateToggle.disabled = semanticToggle.disabled = false;
 		appVersion = prefs.version;
 		showUpdate(prefs.version, prefs.update);
 		about.textContent = `Briefing ${prefs.version} · vault: ${state.vault?.root ?? '—'} · configurações salvas em .briefing/config.json dentro do vault.`;
@@ -2231,9 +2237,11 @@ function labeled(label, control, fill) {
 function brainSearch() {
 	const box = modalShell('modal modal-wide brain-search');
 	const input = el('input', 'modal-input');
-	input.placeholder = 'Pergunte qualquer coisa sobre suas notas… (busca por significado)';
+	const semantic = (state.brainStats ?? []).some((s) => s.semantic);
+	const mode = semantic ? 'significado (IA local) + palavras exatas' : 'busca por palavras · ative a busca por significado em Configurações → Sistema';
+	input.placeholder = semantic ? 'Pergunte qualquer coisa sobre suas notas… (busca por significado)' : 'Busque nas suas notas…';
 	const list = el('div', 'modal-list brain-results');
-	const footer = el('div', 'modal-footer', 'Combina significado (IA local) e palavras exatas · Enter abre o primeiro resultado');
+	const footer = el('div', 'modal-footer', `${mode} · Enter abre o primeiro resultado`);
 	box.append(input, list, footer);
 	let results = [];
 	let seq = 0;
@@ -2255,7 +2263,7 @@ function brainSearch() {
 			const started = performance.now();
 			results = await api.brain.search(q, { limit: 15 });
 			if (mine !== seq) return;
-			footer.textContent = `${results.length} trechos em ${Math.round(performance.now() - started)} ms · significado (IA local) + palavras exatas`;
+			footer.textContent = `${results.length} trechos em ${Math.round(performance.now() - started)} ms · ${mode}`;
 			list.replaceChildren();
 			if (!results.length) list.append(el('div', 'modal-empty', 'Nada encontrado.'));
 			for (const r of results) {
@@ -2298,7 +2306,7 @@ async function openBrain() {
 		el(
 			'div',
 			'modal-message small',
-			'Todas as notas (do vault aberto e das equipes) são divididas em trechos e vetorizadas por uma IA que roda neste PC. Nada sai do computador. O Claude Code consulta esse índice em milissegundos através do servidor MCP do Briefing.',
+			'Todas as notas (do vault aberto e das equipes) são indexadas neste PC para busca por palavras; com a busca por significado ligada (Configurações → Sistema), também são vetorizadas por uma IA local. Nada sai do computador. O Claude Code consulta esse índice através do servidor MCP do Briefing.',
 		),
 	);
 	const body = el('div', 'settings-body');
@@ -2313,6 +2321,14 @@ async function openBrain() {
 		for (const s of stats) {
 			const row = el('div', 'brain-stat');
 			const pct = s.chunks ? Math.round((s.embedded / s.chunks) * 100) : 100;
+			if (s.semanticOff) {
+				row.append(
+					el('div', 'brain-stat-name', s.name),
+					el('div', 'setting-hint', `${s.notes} notas · ${s.chunks} trechos · busca por palavras (busca por significado desligada)`),
+				);
+				statsBox.append(row);
+				continue;
+			}
 			row.append(
 				el('div', 'brain-stat-name', s.name),
 				el('div', 'setting-hint', `${s.notes} notas · ${s.chunks} trechos · ${s.embedded} vetorizados (${pct}%) · ${s.semantic ? 'busca por significado ativa' : `só palavras${s.error ? ` (${s.error})` : ''}`}`),

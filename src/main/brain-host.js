@@ -4,7 +4,9 @@ const { Brain } = require('../core/rag/brain');
 const { Embedder } = require('../core/rag/embedder');
 
 const port = process.parentPort;
-const embedder = new Embedder({ log: (...a) => port.postMessage({ type: 'log', text: a.join(' ') }) });
+// Busca por significado (modelo de IA local): opcional, desligada até o app dizer o contrário.
+let semanticOn = false;
+const embedder = new Embedder({ log: (...a) => port.postMessage({ type: 'log', text: a.join(' ') }), enabled: () => semanticOn });
 const brains = new Map(); // pasta -> { brain, name }
 let indexing = false;
 let again = false;
@@ -59,6 +61,12 @@ port.on('message', async ({ data }) => {
 			indexAll();
 			break;
 		}
+		case 'semantic':
+			semanticOn = !!data.on;
+			if (semanticOn) indexAll(); // vetoriza o que ficou pendente enquanto estava desligada
+			else await embedder.unload(); // libera a memória do modelo na hora
+			port.postMessage({ type: 'stats', stats: stats() });
+			break;
 		case 'reindex':
 			for (const { brain } of brains.values()) brain.invalidate();
 			indexAll();

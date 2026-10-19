@@ -11,21 +11,29 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
-test('Claude consegue buscar, ler e escrever no vault via MCP', { timeout: 300_000 }, async () => {
+async function withServer(semantic, fn) {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'briefing-mcp-'));
 	fs.mkdirSync(path.join(dir, 'Clientes'));
 	fs.writeFileSync(path.join(dir, 'Clientes', 'Padaria.md'), '# Padaria\n\nPaga R$ 2.500 por mês, vencimento dia 10. Contato: Maria.\n');
 	fs.writeFileSync(path.join(dir, 'Processos.md'), '# Processos\n\nToda campanha começa com uma reunião de kickoff.\n');
-
 	const client = new Client({ name: 'teste', version: '1.0.0' });
 	const transport = new StdioClientTransport({
 		command: process.execPath,
 		args: [path.join(here, '..', 'src', 'mcp', 'server.mjs')],
-		env: { ...process.env, BRIEFING_VAULTS: dir },
+		// perfil isolado: não lê as configurações reais do app neste computador
+		env: { ...process.env, BRIEFING_VAULTS: dir, BRIEFING_USER_DATA: path.join(dir, '.perfil'), BRIEFING_SEMANTIC: semantic ? '1' : '0' },
 		stderr: 'pipe',
 	});
 	await client.connect(transport);
 	try {
+		await fn(client, dir);
+	} finally {
+		await client.close();
+	}
+}
+
+test('Claude consegue buscar, ler e escrever no vault via MCP', { timeout: 300_000 }, async () => {
+	await withServer(true, async (client, dir) => {
 		const { tools } = await client.listTools();
 		assert.deepStrictEqual(tools.map((t) => t.name).sort(), ['list_notes', 'read_note', 'recent_changes', 'search', 'vault_info', 'write_note']);
 
@@ -50,7 +58,15 @@ test('Claude consegue buscar, ler e escrever no vault via MCP', { timeout: 300_0
 		console.log(info.content[0].text);
 		// com o modelo já em cache fica "ativa"; num cache vazio o download segue em segundo plano
 		assert.match(info.content[0].text, /busca por significado: (ativa|carregando)/);
-	} finally {
-		await client.close();
-	}
+	});
+});
+
+test('com a busca por significado desligada, o MCP busca por palavras sem carregar o modelo', { timeout: 60_000 }, async () => {
+	await withServer(false, async (client) => {
+		const found = await client.callTool({ name: 'search', arguments: { query: 'mensalidade da padaria' } });
+		assert.match(found.content[0].text, /Clientes\/Padaria\.md/);
+		const info = await client.callTool({ name: 'vault_info', arguments: {} });
+		assert.match(info.content[0].text, /busca por significado: desligada/);
+		assert.match(info.content[0].text, /0 com vetores/);
+	});
 });

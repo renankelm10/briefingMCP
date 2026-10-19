@@ -56,8 +56,9 @@ create a new team and move to it.
 - Note content is returned with an "untrusted data" notice to reduce prompt-injection risk.
 
 **Local AI**
-- Embeddings are computed on your machine. The model (`Xenova/multilingual-e5-small`) is downloaded once from
-  Hugging Face; after that, nothing leaves the computer.
+- Optional and off by default (Settings → System → "Busca por significado"). When on, embeddings are computed on
+  your machine. The model (`Xenova/multilingual-e5-small`) is downloaded once from Hugging Face; after that,
+  nothing leaves the computer. The MCP server follows the same setting.
 
 **App updates** (`src/main/updater.js`)
 - The installed app asks GitHub for the latest **published** release at startup and every 6 hours (drafts and
