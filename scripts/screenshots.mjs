@@ -62,7 +62,15 @@ const shots = {
 		await openNote('Projetos/Campanha de Verão.md');
 		await setMode('edit');
 		key('g', { ctrlKey: true });
-		await wait(3000);
+		await wait(1500);
+		// seleciona uma nota pela busca do grafo: mostra o painel lateral
+		{
+			const input = document.querySelector('.graph-filter');
+			input.value = 'padaria';
+			input.dispatchEvent(new Event('input'));
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		}
+		await wait(1500);
 	`,
 	'04-brain-search': `
 		await brainReady();

@@ -66,7 +66,7 @@ The result: you and a teammate can each work with your own Claude at the same ti
 <td><img src="docs/images/06-tasks.png" alt="Tasks panel"></td>
 </tr>
 <tr>
-<td><b>Graph.</b> See how notes connect; local graph, filter, drag and zoom.</td>
+<td><b>Graph.</b> See how notes connect, colored by folder. Click a note to read it in a side panel without leaving the graph; follow its links, focus its connections or open it.</td>
 <td><b>Tasks & agenda.</b> Every <code>- [ ]</code> in the vault in one panel, plus a calendar of daily notes.</td>
 </tr>
 </table>

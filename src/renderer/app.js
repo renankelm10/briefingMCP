@@ -2398,7 +2398,18 @@ function showGraph(local = false) {
 		links,
 		current: currentPath(),
 		local,
-		onOpen: (node) => (node.kind === 'ghost' ? openLink(node.label, currentPath()) : open(node.id)),
+		onOpen: (node, { newTab }) => (node.kind === 'ghost' ? openLink(node.label, currentPath(), { newTab }) : open(node.id, { newTab })),
+		renderNote: (path) => {
+			const text = state.contents.get(path) ?? '';
+			return text.trim() ? renderMarkdown(text, path, 1) : '<p class="muted">Nota vazia</p>';
+		},
+		resolveLink: (href, from) => index.resolve(href, from),
+		noteInfo: (path) => ({
+			tags: [...new Set((index.meta.get(path)?.tags ?? []).map((t) => t.toLowerCase()))],
+			backlinks: index.backlinks(path).length,
+			outgoing: index.outgoing(path).length,
+		}),
+		openExternal: (url) => api.openExternal(url),
 		onClose: () => {
 			if (state.modalCleanup === close) state.modalCleanup = null;
 		},
@@ -2549,7 +2560,8 @@ window.addEventListener(
 			hideHover();
 			if ($('#modal-root').children.length) {
 				e.preventDefault();
-				closeModal();
+				// o modal pode tratar o Esc antes (ex.: o grafo fecha primeiro o painel lateral)
+				if (!state.modalCleanup?.handleEscape?.()) closeModal();
 			} else if (state.layout.focus) {
 				toggleFocus();
 			}
