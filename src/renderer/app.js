@@ -2439,6 +2439,8 @@ function showGraph(local = false) {
 			return text.trim() ? renderMarkdown(text, path, 1) : '<p class="muted">Nota vazia</p>';
 		},
 		resolveLink: (href, from) => index.resolve(href, from),
+		tagsOf: (path) => [...new Set((index.meta.get(path)?.tags ?? []).map((t) => t.toLowerCase()))],
+		onTag: (tag) => setSearch(`#${tag}`),
 		noteInfo: (path) => ({
 			tags: [...new Set((index.meta.get(path)?.tags ?? []).map((t) => t.toLowerCase()))],
 			backlinks: index.backlinks(path).length,

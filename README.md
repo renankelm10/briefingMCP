@@ -69,7 +69,7 @@ The result: you and a teammate can each work with your own Claude at the same ti
 <td><img src="docs/images/06-tasks.png" alt="Tasks panel"></td>
 </tr>
 <tr>
-<td><b>Graph.</b> See how notes connect, colored by folder. Click a note to read it in a side panel without leaving the graph; follow its links, focus its connections or open it.</td>
+<td><b>Graph.</b> See how notes connect, colored by folder. Click a note to read it in a side panel without leaving the graph; follow its links, focus its connections or open it. The ⚙ panel adds filters (tags as nodes, orphans, missing notes), color groups (<code>tag:#client</code>, <code>path:Projects</code>), arrows, sizes and live forces.</td>
 <td><b>Tasks & agenda.</b> Every <code>- [ ]</code> in the vault in one panel, plus a calendar of daily notes.</td>
 </tr>
 </table>

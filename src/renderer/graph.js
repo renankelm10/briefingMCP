@@ -1,5 +1,6 @@
-// Grafo de notas: simulação de forças (d3-force) desenhada em <canvas>, com painel lateral
-// que mostra a nota clicada sem sair do grafo.
+// Grafo de notas: simulação de forças (d3-force) desenhada em <canvas>.
+// - painel lateral mostra a nota clicada sem sair do grafo;
+// - painel ⚙ com filtros, grupos de cores, exibição e forças (salvo neste computador).
 import { forceSimulation, forceLink, forceManyBody, forceCenter, forceCollide, forceX, forceY } from 'd3-force';
 
 const idOf = (x) => (typeof x === 'object' ? x.id : x);
@@ -7,6 +8,39 @@ const folderOf = (id) => (id.includes('/') ? id.slice(0, id.indexOf('/')) : '');
 // Cores por pasta de primeiro nível (legíveis no tema claro e no escuro).
 const PALETTE = ['#5aa9e6', '#7bc47f', '#c678dd', '#e06c75', '#56b6c2', '#d19a66', '#a0a8ff', '#e5c07b'];
 const PANEL_KEY = 'briefing.graphPanelWidth';
+const SETTINGS_KEY = 'briefing.graphSettings';
+
+const DEFAULTS = {
+	// filtros
+	showGhosts: false,
+	showTags: false,
+	showOrphans: true,
+	// grupos: { query: 'tag:#cliente' | 'path:Projetos' | texto, color: '#rrggbb' }
+	colorByFolder: true,
+	groups: [],
+	// exibição
+	arrows: false,
+	textFade: 0.7, // zoom a partir do qual todos os nomes aparecem
+	labelSize: 12,
+	nodeSize: 1,
+	linkWidth: 1,
+	// forças
+	center: 0.06,
+	repel: 120,
+	linkForce: 0.4,
+	linkDistance: 60,
+	// seções abertas no painel ⚙
+	open: { filters: true, groups: true, display: false, forces: false },
+};
+
+function loadSettings() {
+	try {
+		const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+		return { ...structuredClone(DEFAULTS), ...saved, open: { ...DEFAULTS.open, ...saved.open } };
+	} catch {
+		return structuredClone(DEFAULTS);
+	}
+}
 
 function el(tag, className, text) {
 	const node = document.createElement(tag);
@@ -15,19 +49,47 @@ function el(tag, className, text) {
 	return node;
 }
 
+/** "tag:#cliente" / "#cliente", "path:Projetos", ou texto no nome da nota. */
+function compileQuery(query, tagsOf) {
+	const q = query.trim().toLowerCase();
+	if (!q) return () => false;
+	if (q.startsWith('path:')) {
+		const p = q.slice(5).trim();
+		return (n) => n.kind === 'note' && n.id.toLowerCase().includes(p);
+	}
+	if (q.startsWith('tag:') || q.startsWith('#')) {
+		const t = q.replace(/^tag:/, '').trim().replace(/^#/, '');
+		return (n) => (n.kind === 'tag' ? n.tag === t : n.kind === 'note' && tagsOf(n.id).some((x) => x === t || x.startsWith(t + '/')));
+	}
+	const text = q.replace(/^file:/, '').trim();
+	return (n) => n.label.toLowerCase().includes(text);
+}
+
 /**
  * @param {HTMLElement} root
  * @param {object} o
  * @param {Array} o.nodes  { id, label, kind: 'note' | 'ghost' }
  * @param {Array} o.links  { source, target }
  * @param {(node, opts: { newTab: boolean }) => void} o.onOpen  abre a nota no editor (o grafo fecha antes)
+ * @param {(tag: string) => void} o.onTag  busca a tag no vault (o grafo fecha antes)
  * @param {(path: string) => string} o.renderNote  HTML da nota para o painel
  * @param {(href: string, from: string) => string|null} o.resolveLink
  * @param {(path: string) => { tags: string[], backlinks: number, outgoing: number }} o.noteInfo
+ * @param {(path: string) => string[]} o.tagsOf  tags da nota, em minúsculas
  * @param {(url: string) => void} o.openExternal
  */
 export function openGraph(root, o) {
-	const { nodes, links, current, onOpen, onClose, renderNote, resolveLink, noteInfo, openExternal } = o;
+	const { nodes, links, current, onOpen, onTag, onClose, renderNote, resolveLink, noteInfo, tagsOf, openExternal } = o;
+	const S = loadSettings();
+	let saveTimer = null;
+	const save = () => {
+		clearTimeout(saveTimer);
+		saveTimer = setTimeout(() => {
+			try {
+				localStorage.setItem(SETTINGS_KEY, JSON.stringify(S));
+			} catch {}
+		}, 300);
+	};
 
 	const backdrop = el('div', 'modal-backdrop');
 	const box = el('div', 'graph-box');
@@ -39,7 +101,7 @@ export function openGraph(root, o) {
 		<span class="graph-count muted"></span>
 		<input class="graph-filter" type="search" placeholder="Buscar nota… (Enter)" spellcheck="false">
 		<label title="Mostrar só a nota em foco e suas conexões"><input type="checkbox" class="local"> local</label>
-		<label title="Links para notas que ainda não foram criadas"><input type="checkbox" class="ghosts"> notas inexistentes</label>
+		<button class="icon-btn settings-btn" title="Filtros, grupos, exibição e forças">⚙</button>
 		<button class="icon-btn close" title="Fechar (Esc)">✕</button>`;
 
 	const body = el('div', 'graph-body');
@@ -55,7 +117,9 @@ export function openGraph(root, o) {
 	controls.append(zoomIn, zoomOut, fitBtn);
 	const legend = el('div', 'graph-legend');
 	const hint = el('div', 'graph-hint', 'Clique para ver · duplo clique para abrir · arraste para mover');
-	stage.append(canvas, controls, legend, hint);
+	const settingsBox = el('div', 'graph-settings');
+	settingsBox.hidden = true;
+	stage.append(canvas, controls, legend, hint, settingsBox);
 
 	const resizer = el('div', 'graph-resizer');
 	const panel = el('aside', 'graph-panel');
@@ -83,34 +147,79 @@ export function openGraph(root, o) {
 		text: color('--text-muted'),
 		heading: color('--heading'),
 		hl: color('--link'),
+		tag: color('--success'),
 	};
 
 	// ---------- dados ----------
-	const allNodes = nodes.map((n) => ({ ...n, deg: 0, folder: n.kind === 'note' ? folderOf(n.id) : '' }));
-	const byId = new Map(allNodes.map((n) => [n.id, n]));
-	const allLinks = links.map((l) => ({ source: l.source, target: l.target }));
-	for (const l of allLinks) {
-		byId.get(l.source).deg++;
-		byId.get(l.target).deg++;
-	}
-	for (const n of allNodes) n.r = 4 + Math.sqrt(n.deg) * 2;
-
 	const folders = new Map(); // pasta -> { color, count }
-	for (const n of allNodes) {
-		if (n.kind !== 'note' || !n.folder) continue;
-		if (!folders.has(n.folder)) folders.set(n.folder, { count: 0 });
-		folders.get(n.folder).count++;
+	for (const n of nodes) {
+		const f = n.kind === 'note' ? folderOf(n.id) : '';
+		if (!f) continue;
+		if (!folders.has(f)) folders.set(f, { count: 0 });
+		folders.get(f).count++;
 	}
 	[...folders.keys()]
 		.sort((a, b) => folders.get(b).count - folders.get(a).count)
 		.forEach((f, i) => (folders.get(f).color = PALETTE[i % PALETTE.length]));
-	const fillOf = (n) => (n.kind === 'ghost' ? colors.ghost : folders.get(n.folder)?.color ?? colors.node);
 
-	let showGhosts = false;
+	let allNodes = [];
+	let allLinks = [];
+	let byId = new Map();
+
+	// Monta nós e ligações (com tags como nós, se ligado). Mantém as posições já calculadas.
+	function buildData() {
+		const prev = byId;
+		const keep = (n) => {
+			const old = prev.get(n.id);
+			return old ? Object.assign(n, { x: old.x, y: old.y, vx: old.vx, vy: old.vy }) : n;
+		};
+		allNodes = nodes.map((n) => keep({ ...n, deg: 0, folder: n.kind === 'note' ? folderOf(n.id) : '' }));
+		allLinks = links.map((l) => ({ source: l.source, target: l.target }));
+		if (S.showTags) {
+			const tagNodes = new Map();
+			for (const n of nodes) {
+				if (n.kind !== 'note') continue;
+				for (const t of tagsOf(n.id)) {
+					const id = '#' + t;
+					if (!tagNodes.has(id)) tagNodes.set(id, keep({ id, label: '#' + t, tag: t, kind: 'tag', deg: 0, folder: '' }));
+					allLinks.push({ source: n.id, target: id, tagLink: true });
+				}
+			}
+			allNodes.push(...tagNodes.values());
+		}
+		byId = new Map(allNodes.map((n) => [n.id, n]));
+		for (const l of allLinks) {
+			byId.get(l.source).deg++;
+			byId.get(l.target).deg++;
+		}
+		applyGroups();
+	}
+
+	// Cor de cada nó: grupo do usuário > pasta > padrão.
+	function applyGroups() {
+		const rules = S.groups.filter((g) => g.query.trim()).map((g) => ({ test: compileQuery(g.query, tagsOf), color: g.color }));
+		for (const n of allNodes) {
+			n.color = null;
+			for (const r of rules) {
+				if (r.test(n)) {
+					n.color = r.color;
+					break;
+				}
+			}
+		}
+	}
+	const fillOf = (n) => {
+		if (n.kind === 'ghost') return colors.ghost;
+		if (n.color) return n.color;
+		if (n.kind === 'tag') return colors.tag;
+		return (S.colorByFolder && folders.get(n.folder)?.color) || colors.node;
+	};
+	const radius = (n) => (n.kind === 'tag' ? 3 + Math.sqrt(n.deg) * 1.2 : 4 + Math.sqrt(n.deg) * 2) * S.nodeSize;
+
 	let localOnly = false;
 	let localRoot = current;
 	let filter = '';
-	let folderFilter = null;
+	let legendFilter = null; // { key, test }
 	let visNodes = [];
 	let visLinks = [];
 	let neighbors = new Map();
@@ -120,35 +229,48 @@ export function openGraph(root, o) {
 	// Grafos pequenos ganham mais espaço entre os nós para os nomes não se sobreporem.
 	const spread = noteCount < 40 ? 1.8 : noteCount < 150 ? 1.3 : 1;
 	const sim = forceSimulation()
-		.force('charge', forceManyBody().strength(-120 * spread).distanceMax(450 * spread))
-		.force('link', forceLink().id((d) => d.id).distance(60 * spread).strength(0.4))
+		.force('charge', forceManyBody())
+		.force('link', forceLink().id((d) => d.id))
 		.force('center', forceCenter(0, 0))
-		.force('collide', forceCollide((d) => d.r + 4))
-		// gravidade leve: mantém notas soltas perto do centro
-		.force('x', forceX(0).strength(0.06))
-		.force('y', forceY(0).strength(0.06))
+		.force('collide', forceCollide((d) => radius(d) + 4))
+		// gravidade: mantém notas soltas perto do centro
+		.force('x', forceX(0))
+		.force('y', forceY(0))
 		.stop()
 		.on('tick', draw);
 
-	function rebuild({ settle = false } = {}) {
-		visNodes = allNodes.filter((n) => showGhosts || n.kind === 'note');
+	function applyForces() {
+		sim.force('charge').strength(-S.repel * spread).distanceMax(450 * spread);
+		sim.force('link').distance((l) => (l.tagLink ? 0.7 : 1) * S.linkDistance * spread).strength(S.linkForce);
+		sim.force('x').strength(S.center);
+		sim.force('y').strength(S.center);
+		sim.force('collide').radius((d) => radius(d) + 4);
+	}
+
+	function rebuild({ settle = false, refit = true } = {}) {
+		visNodes = allNodes.filter((n) => n.kind === 'note' || (n.kind === 'ghost' && S.showGhosts) || (n.kind === 'tag' && S.showTags));
 		if (localOnly && localRoot) {
 			// nota em foco + vizinhos até 2 saltos
-			const keep = new Set([localRoot]);
+			const keepIds = new Set([localRoot]);
 			for (let depth = 0; depth < 2; depth++) {
 				for (const l of allLinks) {
 					const a = idOf(l.source);
 					const b = idOf(l.target);
-					if (keep.has(a) || keep.has(b)) {
-						keep.add(a);
-						keep.add(b);
+					if (keepIds.has(a) || keepIds.has(b)) {
+						keepIds.add(a);
+						keepIds.add(b);
 					}
 				}
 			}
-			visNodes = visNodes.filter((n) => keep.has(n.id));
+			visNodes = visNodes.filter((n) => keepIds.has(n.id));
 		}
-		const ids = new Set(visNodes.map((n) => n.id));
+		let ids = new Set(visNodes.map((n) => n.id));
 		visLinks = allLinks.filter((l) => ids.has(idOf(l.source)) && ids.has(idOf(l.target)));
+		if (!S.showOrphans) {
+			const linked = new Set(visLinks.flatMap((l) => [idOf(l.source), idOf(l.target)]));
+			visNodes = visNodes.filter((n) => linked.has(n.id) || n === selected);
+			ids = new Set(visNodes.map((n) => n.id));
+		}
 		neighbors = new Map();
 		const link = (a, b) => {
 			if (!neighbors.has(a)) neighbors.set(a, new Set());
@@ -158,6 +280,7 @@ export function openGraph(root, o) {
 			link(idOf(l.source), idOf(l.target));
 			link(idOf(l.target), idOf(l.source));
 		}
+		applyForces();
 		sim.nodes(visNodes);
 		sim.force('link').links(visLinks);
 		if (settle) {
@@ -168,7 +291,7 @@ export function openGraph(root, o) {
 			sim.alpha(0.08).restart();
 		} else {
 			sim.alpha(0.6).restart();
-			setTimeout(() => fit(true), 700);
+			if (refit) setTimeout(() => fit(true), 700);
 		}
 		renderLegend();
 	}
@@ -215,10 +338,11 @@ export function openGraph(root, o) {
 		let x1 = -Infinity;
 		let y1 = -Infinity;
 		for (const n of visNodes) {
-			x0 = Math.min(x0, n.x - n.r);
-			y0 = Math.min(y0, n.y - n.r);
-			x1 = Math.max(x1, n.x + n.r);
-			y1 = Math.max(y1, n.y + n.r + 16);
+			const r = radius(n);
+			x0 = Math.min(x0, n.x - r);
+			y0 = Math.min(y0, n.y - r);
+			x1 = Math.max(x1, n.x + r);
+			y1 = Math.max(y1, n.y + r + 16);
 		}
 		const k = Math.min(2.2, Math.max(0.15, Math.min(W / (x1 - x0 + 120), H / (y1 - y0 + 120))));
 		const target = { k, x: -((x0 + x1) / 2) * k, y: -((y0 + y1) / 2) * k };
@@ -248,7 +372,7 @@ export function openGraph(root, o) {
 		let bestDist = Infinity;
 		for (const n of visNodes) {
 			const d = Math.hypot(n.x - p.x, n.y - p.y);
-			if (d < n.r + 6 / view.k && d < bestDist) {
+			if (d < radius(n) + 6 / view.k && d < bestDist) {
 				best = n;
 				bestDist = d;
 			}
@@ -258,6 +382,23 @@ export function openGraph(root, o) {
 
 	// ---------- desenho ----------
 	const matches = (n) => filter && n.label.toLowerCase().includes(filter);
+
+	function drawArrow(from, to, r) {
+		const dx = to.x - from.x;
+		const dy = to.y - from.y;
+		const len = Math.hypot(dx, dy) || 1;
+		const ux = dx / len;
+		const uy = dy / len;
+		const tipX = to.x - ux * (r + 1.5 / view.k);
+		const tipY = to.y - uy * (r + 1.5 / view.k);
+		const size = (4 + S.linkWidth * 1.5) / view.k;
+		ctx.beginPath();
+		ctx.moveTo(tipX, tipY);
+		ctx.lineTo(tipX - ux * size - uy * size * 0.55, tipY - uy * size + ux * size * 0.55);
+		ctx.lineTo(tipX - ux * size + uy * size * 0.55, tipY - uy * size - ux * size * 0.55);
+		ctx.closePath();
+		ctx.fill();
+	}
 
 	function draw() {
 		if (!W) return;
@@ -269,31 +410,37 @@ export function openGraph(root, o) {
 		const focus = hover ?? selected;
 		const nb = focus ? neighbors.get(focus.id) ?? new Set() : null;
 		const dimmed = (n) =>
-			(focus && n !== focus && !nb.has(n.id)) ||
-			(!focus && filter && !matches(n)) ||
-			(!focus && folderFilter != null && n.folder !== folderFilter);
+			(focus && n !== focus && !nb.has(n.id)) || (!focus && filter && !matches(n)) || (!focus && legendFilter && !legendFilter.test(n));
 
+		// ligações
 		for (const l of visLinks) {
 			const lit = focus && (l.source === focus || l.target === focus);
-			ctx.strokeStyle = lit ? colors.hl : colors.link;
-			ctx.lineWidth = (lit ? 1.8 : 1) / view.k;
-			ctx.globalAlpha = focus && !lit ? 0.12 : lit ? 0.95 : 0.7;
+			const dim = focus ? !lit : legendFilter ? !(legendFilter.test(l.source) && legendFilter.test(l.target)) : false;
+			ctx.strokeStyle = ctx.fillStyle = lit ? colors.hl : colors.link;
+			ctx.lineWidth = ((lit ? 1.8 : 1) * S.linkWidth) / view.k;
+			ctx.globalAlpha = dim ? 0.12 : lit ? 0.95 : 0.75;
+			if (l.tagLink) ctx.setLineDash([3 / view.k, 3 / view.k]);
 			ctx.beginPath();
 			ctx.moveTo(l.source.x, l.source.y);
 			ctx.lineTo(l.target.x, l.target.y);
 			ctx.stroke();
+			ctx.setLineDash([]);
+			if (S.arrows && !l.tagLink) drawArrow(l.source, l.target, radius(l.target));
 		}
 
+		// nós
 		for (const n of visNodes) {
 			const dim = dimmed(n);
-			ctx.globalAlpha = dim ? 0.18 : 1;
-			const fill = fillOf(n);
-			if (n === selected) {
+			const big = n === hover || n === selected;
+			const r = radius(n) * (big ? 1.25 : 1);
+			const fill = matches(n) && !focus ? colors.hl : fillOf(n);
+			ctx.globalAlpha = dim ? 0.15 : 1;
+			if (big && !dim) {
 				ctx.shadowColor = fill;
-				ctx.shadowBlur = 22;
+				ctx.shadowBlur = n === selected ? 24 : 12;
 			}
 			ctx.beginPath();
-			ctx.arc(n.x, n.y, n === hover || n === selected ? n.r * 1.25 : n.r, 0, Math.PI * 2);
+			ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
 			if (n.kind === 'ghost') {
 				ctx.setLineDash([2 / view.k, 2 / view.k]);
 				ctx.strokeStyle = fill;
@@ -301,61 +448,220 @@ export function openGraph(root, o) {
 				ctx.stroke();
 				ctx.setLineDash([]);
 			} else {
-				ctx.fillStyle = matches(n) && !focus ? colors.hl : fill;
+				ctx.fillStyle = fill;
 				ctx.fill();
+				// contorno na cor do fundo separa nós encostados
+				ctx.shadowBlur = 0;
+				ctx.strokeStyle = colors.bg;
+				ctx.lineWidth = 1.5 / view.k;
+				ctx.stroke();
 			}
 			ctx.shadowBlur = 0;
 			// anel: nota aberta no editor (âmbar) e nota selecionada (claro)
 			if (n.id === current || n === selected) {
 				ctx.beginPath();
-				ctx.arc(n.x, n.y, n.r * 1.25 + 3 / view.k, 0, Math.PI * 2);
+				ctx.arc(n.x, n.y, r + 3 / view.k, 0, Math.PI * 2);
 				ctx.strokeStyle = n === selected ? colors.heading : colors.accent;
 				ctx.lineWidth = 2 / view.k;
 				ctx.stroke();
 			}
 		}
 
-		const size = 12 / Math.max(view.k, 0.6);
+		// nomes: aparecem aos poucos conforme o zoom passa do limite escolhido
+		const size = S.labelSize / Math.max(view.k, 0.6);
 		ctx.font = `${size}px "Segoe UI", system-ui, sans-serif`;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'top';
 		ctx.lineJoin = 'round';
-		const showAll = view.k > 0.7 || visNodes.length < 40;
+		const fade = visNodes.length < 25 ? 1 : Math.min(1, Math.max(0, (view.k - S.textFade) / 0.25 + 1));
 		for (const n of visNodes) {
 			const important = n === focus || n.id === current || (nb && nb.has(n.id)) || matches(n);
-			if (!showAll && !important) continue;
-			ctx.globalAlpha = dimmed(n) ? 0.2 : 1;
-			const y = n.y + n.r * 1.25 + 4 / view.k;
-			// contorno na cor do fundo deixa o nome legível sobre as linhas
+			const alpha = important ? 1 : fade;
+			if (alpha <= 0.02) continue;
+			ctx.globalAlpha = dimmed(n) ? Math.min(alpha, 0.2) : alpha;
+			const y = n.y + radius(n) * 1.25 + 4 / view.k;
 			ctx.strokeStyle = colors.bg;
 			ctx.lineWidth = 3 / view.k;
 			ctx.strokeText(n.label, n.x, y);
-			ctx.fillStyle = n === focus ? colors.heading : colors.text;
+			ctx.fillStyle = n === focus ? colors.heading : n.kind === 'tag' ? fillOf(n) : colors.text;
 			ctx.fillText(n.label, n.x, y);
 		}
 		ctx.globalAlpha = 1;
 	}
 
-	// ---------- legenda (pastas) ----------
+	// ---------- legenda: grupos do usuário, ou pastas ----------
 	function renderLegend() {
 		legend.replaceChildren();
-		if (!folders.size) return;
-		const visible = new Set(visNodes.map((n) => n.folder));
-		for (const [name, info] of [...folders].sort((a, b) => b[1].count - a[1].count)) {
-			if (!visible.has(name)) continue;
-			const item = el('button', `graph-legend-item${folderFilter === name ? ' active' : ''}`);
+		const items = [];
+		for (const g of S.groups.filter((x) => x.query.trim())) {
+			items.push({ key: 'g:' + g.query, label: g.query, color: g.color, test: compileQuery(g.query, tagsOf) });
+		}
+		if (S.colorByFolder) {
+			const visible = new Set(visNodes.map((n) => n.folder));
+			for (const [name, info] of [...folders].sort((a, b) => b[1].count - a[1].count)) {
+				if (visible.has(name)) items.push({ key: 'f:' + name, label: name, count: info.count, color: info.color, test: (n) => n.folder === name });
+			}
+		}
+		if (legendFilter && !items.some((i) => i.key === legendFilter.key)) legendFilter = null;
+		for (const it of items) {
+			const item = el('button', `graph-legend-item${legendFilter?.key === it.key ? ' active' : ''}`);
 			const dot = el('span', 'graph-dot');
-			dot.style.background = info.color;
-			item.append(dot, el('span', '', name), el('span', 'muted', String(info.count)));
-			item.title = folderFilter === name ? 'Mostrar todas as pastas' : `Destacar a pasta ${name}`;
+			dot.style.background = it.color;
+			item.append(dot, el('span', '', it.label));
+			if (it.count != null) item.append(el('span', 'muted', String(it.count)));
+			item.title = legendFilter?.key === it.key ? 'Mostrar tudo' : `Destacar ${it.label}`;
 			item.onclick = () => {
-				folderFilter = folderFilter === name ? null : name;
+				legendFilter = legendFilter?.key === it.key ? null : it;
 				renderLegend();
 				draw();
 			};
 			legend.append(item);
 		}
 	}
+
+	// ---------- painel ⚙ (filtros, grupos, exibição, forças) ----------
+	function renderSettings() {
+		settingsBox.replaceChildren();
+		const section = (key, title, build) => {
+			const sec = el('div', `gs-section${S.open[key] ? ' open' : ''}`);
+			const head = el('button', 'gs-head');
+			head.append(el('span', 'gs-caret', '›'), el('span', '', title));
+			head.onclick = () => {
+				S.open[key] = !S.open[key];
+				save();
+				sec.classList.toggle('open', S.open[key]);
+			};
+			const content = el('div', 'gs-body');
+			build(content);
+			sec.append(head, content);
+			settingsBox.append(sec);
+		};
+		const toggle = (parent, label, key, after) => {
+			const row = el('label', 'gs-row');
+			const input = el('input');
+			input.type = 'checkbox';
+			input.checked = !!S[key];
+			input.onchange = () => {
+				S[key] = input.checked;
+				save();
+				after();
+			};
+			row.append(el('span', '', label), input);
+			parent.append(row);
+		};
+		const slider = (parent, label, key, min, max, step, after) => {
+			const row = el('div', 'gs-slider');
+			const top = el('div', 'gs-slider-top');
+			const value = el('span', 'gs-value');
+			const fmt = () => (value.textContent = Number(S[key]).toFixed(step < 1 ? (step < 0.1 ? 2 : 1) : 0));
+			top.append(el('span', '', label), value);
+			const input = el('input');
+			Object.assign(input, { type: 'range', min, max, step, value: S[key] });
+			input.oninput = () => {
+				S[key] = Number(input.value);
+				fmt();
+				save();
+				after();
+			};
+			fmt();
+			row.append(top, input);
+			parent.append(row);
+		};
+		const relayout = () => rebuild({ refit: false });
+		const recolor = () => {
+			applyGroups();
+			renderLegend();
+			draw();
+		};
+
+		section('filters', 'Filtros', (c) => {
+			toggle(c, 'Tags como pontos', 'showTags', () => {
+				buildData();
+				rebuild();
+			});
+			toggle(c, 'Notas inexistentes', 'showGhosts', () => rebuild());
+			toggle(c, 'Notas sem conexões', 'showOrphans', () => rebuild());
+		});
+
+		section('groups', 'Grupos', (c) => {
+			toggle(c, 'Colorir por pasta', 'colorByFolder', recolor);
+			c.append(el('div', 'gs-hint', 'Grupos pintam as notas que combinam com a busca: tag:#cliente, path:Projetos ou parte do nome.'));
+			S.groups.forEach((g, i) => {
+				const row = el('div', 'gs-group');
+				const input = el('input', 'gs-query');
+				input.value = g.query;
+				input.placeholder = 'tag:#cliente';
+				input.spellcheck = false;
+				input.oninput = () => {
+					g.query = input.value;
+					save();
+					recolor();
+				};
+				const pick = el('input', 'gs-color');
+				pick.type = 'color';
+				pick.value = g.color;
+				pick.oninput = () => {
+					g.color = pick.value;
+					save();
+					recolor();
+				};
+				const del = el('button', 'icon-btn', '✕');
+				del.title = 'Remover grupo';
+				del.onclick = () => {
+					S.groups.splice(i, 1);
+					save();
+					recolor();
+					renderSettings();
+				};
+				row.append(pick, input, del);
+				c.append(row);
+			});
+			const add = el('button', 'btn small gs-add', 'Novo grupo');
+			add.onclick = () => {
+				S.groups.push({ query: '', color: PALETTE[S.groups.length % PALETTE.length] });
+				save();
+				renderSettings();
+				settingsBox.querySelectorAll('.gs-query')[S.groups.length - 1]?.focus();
+			};
+			c.append(add);
+		});
+
+		section('display', 'Exibição', (c) => {
+			toggle(c, 'Setas', 'arrows', draw);
+			slider(c, 'Mostrar nomes a partir do zoom', 'textFade', 0.2, 2, 0.05, draw);
+			slider(c, 'Tamanho dos nomes', 'labelSize', 8, 20, 1, draw);
+			slider(c, 'Tamanho dos pontos', 'nodeSize', 0.4, 3, 0.1, () => {
+				sim.force('collide').radius((d) => radius(d) + 4);
+				sim.alpha(0.2).restart();
+			});
+			slider(c, 'Espessura das linhas', 'linkWidth', 0.3, 4, 0.1, draw);
+		});
+
+		section('forces', 'Forças', (c) => {
+			slider(c, 'Força do centro', 'center', 0, 0.3, 0.01, relayout);
+			slider(c, 'Repulsão', 'repel', 0, 500, 5, relayout);
+			slider(c, 'Força das ligações', 'linkForce', 0, 1, 0.05, relayout);
+			slider(c, 'Distância das ligações', 'linkDistance', 15, 250, 5, relayout);
+		});
+
+		const reset = el('button', 'btn small gs-reset', 'Restaurar padrão');
+		reset.onclick = () => {
+			const open = S.open;
+			Object.assign(S, structuredClone(DEFAULTS), { open });
+			save();
+			buildData();
+			rebuild();
+			renderSettings();
+		};
+		settingsBox.append(reset);
+	}
+
+	const settingsBtn = header.querySelector('.settings-btn');
+	settingsBtn.onclick = () => {
+		settingsBox.hidden = !settingsBox.hidden;
+		settingsBtn.classList.toggle('on', !settingsBox.hidden);
+		if (!settingsBox.hidden) renderSettings();
+	};
 
 	// ---------- painel lateral ----------
 	function showPanel(show) {
@@ -380,7 +686,8 @@ export function openGraph(root, o) {
 
 	function openNode(node, newTab = false) {
 		close();
-		onOpen(node, { newTab });
+		if (node.kind === 'tag') onTag(node.tag);
+		else onOpen(node, { newTab });
 	}
 
 	function renderPanel(node) {
@@ -388,7 +695,8 @@ export function openGraph(root, o) {
 		const head = el('div', 'graph-panel-head');
 		const titles = el('div', 'graph-panel-titles');
 		titles.append(el('div', 'graph-panel-title', node.label));
-		if (node.kind === 'note') titles.append(el('div', 'graph-panel-path', node.id.includes('/') ? node.id.slice(0, node.id.lastIndexOf('/')).split('/').join(' / ') : 'raiz do vault'));
+		const where = node.kind === 'note' ? (node.id.includes('/') ? node.id.slice(0, node.id.lastIndexOf('/')).split('/').join(' / ') : 'raiz do vault') : node.kind === 'tag' ? 'tag' : 'nota inexistente';
+		titles.append(el('div', 'graph-panel-path', where));
 		const x = el('button', 'icon-btn', '✕');
 		x.title = 'Fechar painel (Esc)';
 		x.onclick = () => select(null);
@@ -404,9 +712,13 @@ export function openGraph(root, o) {
 		};
 		if (node.kind === 'ghost') {
 			button('Criar nota', 'btn cta', () => openNode(node));
+		} else if (node.kind === 'tag') {
+			button('Buscar no vault', 'btn cta', () => openNode(node), 'Lista todas as notas com esta tag');
 		} else {
 			button('Abrir nota', 'btn cta', () => openNode(node), 'Abrir no editor (duplo clique no grafo)');
 			button('Nova aba', 'btn', () => openNode(node, true));
+		}
+		if (node.kind !== 'ghost') {
 			button(localOnly && localRoot === node.id ? 'Ver grafo todo' : 'Focar conexões', 'btn', () => {
 				const focusing = !(localOnly && localRoot === node.id);
 				localOnly = focusing;
@@ -428,7 +740,7 @@ export function openGraph(root, o) {
 		}
 
 		if (nb.length) {
-			panel.append(el('div', 'graph-panel-section', `Conexões · ${nb.length}`));
+			panel.append(el('div', 'graph-panel-section', `${node.kind === 'tag' ? 'Notas com esta tag' : 'Conexões'} · ${nb.length}`));
 			const list = el('div', 'graph-panel-links');
 			for (const n of nb.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))) {
 				const b = el('button', `graph-link-chip${n.kind === 'ghost' ? ' ghost' : ''}`);
@@ -449,6 +761,7 @@ export function openGraph(root, o) {
 			panel.append(list);
 		}
 
+		if (node.kind === 'tag') return;
 		const content = el('div', 'graph-panel-body markdown');
 		if (node.kind === 'ghost') {
 			content.append(el('p', 'muted', 'Esta nota ainda não existe. Ela é citada por um link; crie a nota para começar a escrever.'));
@@ -468,13 +781,17 @@ export function openGraph(root, o) {
 			const path = resolveLink(href, selected.id);
 			const node = byId.get(path ?? '?' + href.toLowerCase());
 			if (node) {
-				if (node.kind === 'ghost' && !showGhosts) {
-					showGhosts = true;
-					header.querySelector('.ghosts').checked = true;
+				if (node.kind === 'ghost' && !S.showGhosts) {
+					S.showGhosts = true;
+					save();
 					rebuild();
+					if (!settingsBox.hidden) renderSettings();
 				}
 				select(node);
 			}
+		} else if (a.classList.contains('tag')) {
+			const node = byId.get('#' + String(a.dataset.tag).toLowerCase());
+			if (node) select(node);
 		} else if (/^(https?|mailto):/i.test(a.getAttribute('href') ?? '')) {
 			openExternal(a.getAttribute('href'));
 		}
@@ -597,16 +914,12 @@ export function openGraph(root, o) {
 		if (best) select(best);
 	});
 	header.querySelector('.close').addEventListener('click', close);
-	header.querySelector('.ghosts').addEventListener('change', (e) => {
-		showGhosts = e.target.checked;
-		rebuild();
-	});
 	const localBox = header.querySelector('.local');
 	localBox.disabled = !current;
 	localBox.checked = localOnly = !!(o.local && current);
 	localBox.addEventListener('change', (e) => {
 		localOnly = e.target.checked;
-		localRoot = selected?.kind === 'note' ? selected.id : current;
+		localRoot = selected && selected.kind !== 'ghost' ? selected.id : current;
 		localBox.disabled = !localRoot;
 		rebuild();
 		if (selected) renderPanel(selected);
@@ -626,14 +939,19 @@ export function openGraph(root, o) {
 		onClose?.();
 	}
 
-	// Esc fecha primeiro o painel; com o painel fechado, o app fecha o grafo.
+	// Esc fecha primeiro o painel ⚙, depois o da nota; sem painéis, o app fecha o grafo.
 	close.handleEscape = () => {
+		if (!settingsBox.hidden) {
+			settingsBtn.click();
+			return true;
+		}
 		if (panel.hidden) return false;
 		select(null);
 		return true;
 	};
 
 	resize();
+	buildData();
 	rebuild({ settle: true });
 	return close;
 }

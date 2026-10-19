@@ -844,7 +844,7 @@ table.properties th { width: 130px; color: var(--text-muted); font-weight: 500; 
 .graph-stage canvas { flex: 1; width: 100%; height: 100%; min-height: 0; cursor: grab; }
 .graph-controls {
 	position: absolute;
-	right: 14px;
+	left: 14px;
 	bottom: 14px;
 	display: flex;
 	flex-direction: column;
@@ -871,7 +871,7 @@ table.properties th { width: 130px; color: var(--text-muted); font-weight: 500; 
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	max-height: calc(100% - 70px);
+	max-height: calc(100% - 150px); /* não cobre os botões de zoom */
 	overflow-y: auto;
 }
 .graph-legend-item {
@@ -902,6 +902,84 @@ table.properties th { width: 130px; color: var(--text-muted); font-weight: 500; 
 	pointer-events: none;
 	white-space: nowrap;
 }
+/* painel ⚙ do grafo */
+.graph-settings {
+	position: absolute;
+	top: 12px;
+	right: 12px;
+	width: 290px;
+	max-height: calc(100% - 24px);
+	overflow-y: auto;
+	padding: 6px 0 10px;
+	background: var(--bg-2);
+	border: 1px solid var(--border);
+	border-radius: 10px;
+	box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+	font-size: 13px;
+	z-index: 2;
+}
+.gs-section + .gs-section { border-top: 1px solid var(--border); }
+.gs-head {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	padding: 9px 14px;
+	border: 0;
+	background: none;
+	color: var(--heading);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+	text-align: left;
+}
+.gs-head:hover { background: var(--bg-hover); }
+.gs-caret { display: inline-block; width: 10px; color: var(--text-faint); transition: transform 0.15s; }
+.gs-section.open .gs-caret { transform: rotate(90deg); }
+.gs-body { display: none; padding: 2px 14px 10px; }
+.gs-section.open .gs-body { display: block; }
+.gs-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 5px 0;
+	color: var(--text);
+	cursor: pointer;
+}
+.gs-row input { accent-color: var(--accent); width: 15px; height: 15px; }
+.gs-slider { padding: 6px 0; }
+.gs-slider-top { display: flex; justify-content: space-between; color: var(--text); margin-bottom: 4px; }
+.gs-value { color: var(--text-faint); font-variant-numeric: tabular-nums; }
+.gs-slider input { width: 100%; accent-color: var(--accent); }
+.gs-hint { color: var(--text-faint); font-size: 12px; line-height: 1.45; margin: 4px 0 8px; }
+.gs-group { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.gs-query {
+	flex: 1;
+	min-width: 0;
+	background: var(--bg);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	padding: 4px 8px;
+	color: var(--text);
+	font: inherit;
+	outline: none;
+}
+.gs-query:focus { border-color: var(--accent); }
+.gs-color {
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	border: 1px solid var(--border);
+	border-radius: 50%;
+	background: none;
+	cursor: pointer;
+	overflow: hidden;
+}
+.gs-color::-webkit-color-swatch-wrapper { padding: 0; }
+.gs-color::-webkit-color-swatch { border: 0; border-radius: 50%; }
+.gs-add { margin-top: 2px; }
+.gs-reset { display: block; margin: 10px 14px 0 auto; }
 .graph-resizer { width: 5px; margin-left: -2px; cursor: col-resize; flex: none; z-index: 1; }
 .graph-resizer:hover { background: var(--accent); opacity: 0.5; }
 .graph-panel {
