@@ -22,6 +22,18 @@ test('divide notas em trechos com contexto de título', () => {
 	assert.ok(chunks.every((c) => c.id && c.text));
 });
 
+test('busca logo na inicialização espera a indexação de texto, sem esperar o modelo', async () => {
+	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'briefing-warm-'));
+	write(dir, 'Clientes/Padaria.md', '# Padaria\n\nPaga R$ 2.500 por mês.\n');
+	// Modelo que nunca termina de carregar (download lento): a busca não pode ficar presa nele.
+	const embedder = { loaded: false, load: () => new Promise(() => {}), embed: () => new Promise(() => {}) };
+	const brain = new Brain({ folder: dir, embedder, log: () => {} });
+	brain.refresh({ embed: false }); // como o warmup: indexação de texto em andamento
+	while (!brain.refreshing) await new Promise((r) => setImmediate(r));
+	const hits = await brain.search('mensalidade da padaria');
+	assert.strictEqual(hits[0]?.path, 'Clientes/Padaria.md');
+});
+
 test('busca híbrida encontra por significado e por palavra', { timeout: 600_000 }, async () => {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'briefing-brain-'));
 	write(dir, 'Clientes/Padaria Pão Quente.md', '# Padaria Pão Quente\n\nCliente desde 2023. Contato: Maria Souza, telefone (11) 98888-1234.\n\n## Contrato\nPagamento mensal de R$ 2.500 até o dia 10. Renovação em março.\n');

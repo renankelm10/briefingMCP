@@ -8,3 +8,6 @@ build/
 Thumbs.db
 # vaults de teste locais
 test-vault*/
+
+# Material de divulgação local
+marketing/

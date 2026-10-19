@@ -28,6 +28,7 @@ class Brain {
 		this.model = embedder?.model ?? null;
 		this.loaded = false;
 		this.refreshing = null;
+		this.refreshingEmbeds = false;
 		this.bm25 = null;
 		this.updatedAt = null;
 		this.lastRefresh = 0;
@@ -128,10 +129,13 @@ class Brain {
 	async refresh({ maxAge = 0, onProgress, embed = true } = {}) {
 		await this.load();
 		if (maxAge && Date.now() - this.lastRefresh < maxAge) return false;
-		this.refreshing ??= this.doRefresh(onProgress, embed).finally(() => {
-			this.refreshing = null;
-			this.lastRefresh = Date.now();
-		});
+		if (!this.refreshing) {
+			this.refreshingEmbeds = embed; // a busca só espera atualizações que não dependem do modelo
+			this.refreshing = this.doRefresh(onProgress, embed).finally(() => {
+				this.refreshing = null;
+				this.lastRefresh = Date.now();
+			});
+		}
 		return this.refreshing;
 	}
 
@@ -228,7 +232,9 @@ class Brain {
 		// sem modelo pronto, responde por palavras e o carregamento segue em segundo plano.
 		const modelReady = !!this.embedder?.loaded;
 		if (!modelReady && this.semanticReady()) this.embedder.load().catch((err) => this.failEmbed(err));
-		if (modelReady || !this.refreshing) await this.refresh({ maxAge: 3000, embed: modelReady });
+		// Uma indexação só de texto em andamento (ex.: a da inicialização) é rápida: espera por ela,
+		// senão a busca roda num índice ainda vazio. Só não espera vetores enquanto o modelo carrega.
+		if (modelReady || !this.refreshing || !this.refreshingEmbeds) await this.refresh({ maxAge: 3000, embed: modelReady });
 		if (!this.chunks.length || !String(query).trim()) return [];
 		const allowed = (c) => !pathPrefix || c.rel.toLowerCase().startsWith(pathPrefix.toLowerCase());
 		this.bm25 ??= new Bm25(this.chunks.map((c) => `${c.context}\n${c.text}`));
