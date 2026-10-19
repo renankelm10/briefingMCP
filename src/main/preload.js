@@ -28,6 +28,8 @@ contextBridge.exposeInMainWorld('briefing', {
 	app: {
 		prefs: invoke('app:prefs-get'),
 		setPref: invoke('app:prefs-set'),
+		checkUpdate: invoke('app:update-check'),
+		installUpdate: invoke('app:update-install'),
 	},
 	brain: {
 		search: invoke('brain:search'),
@@ -49,7 +51,7 @@ contextBridge.exposeInMainWorld('briefing', {
 		defaultJoinFolder: invoke('teams:default-join-folder'),
 	},
 	on(channel, callback) {
-		const allowed = ['teams:changed', 'teams:event', 'brain:stats', 'brain:progress'];
+		const allowed = ['teams:changed', 'teams:event', 'brain:stats', 'brain:progress', 'app:update'];
 		if (!allowed.includes(channel)) throw new Error(`Canal não permitido: ${channel}`);
 		const listener = (_event, payload) => callback(payload);
 		ipcRenderer.on(channel, listener);

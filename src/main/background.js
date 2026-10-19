@@ -42,7 +42,25 @@ function isOpenAtLogin(appRoot) {
 	return app.getLoginItemSettings({ args, path: process.execPath }).openAtLogin;
 }
 
-function createTray({ icon, showWindow, getTeams, setAllPaused, prefs, setPref, quit }) {
+// Item de atualização do menu: muda conforme o estado (ver updater.js).
+function updateItem(update, checkUpdate, installUpdate) {
+	switch (update?.status) {
+		case 'ready':
+			return { label: `Reiniciar e atualizar para ${update.version}`, click: installUpdate };
+		case 'available':
+			return { label: `Baixar a versão ${update.version}`, click: installUpdate };
+		case 'downloading':
+			return { label: `Baixando atualização… ${update.progress}%`, enabled: false };
+		case 'checking':
+			return { label: 'Verificando atualizações…', enabled: false };
+		case 'dev':
+			return null;
+		default:
+			return { label: 'Verificar atualizações', click: checkUpdate };
+	}
+}
+
+function createTray({ icon, showWindow, getTeams, setAllPaused, prefs, setPref, checkUpdate, installUpdate, quit }) {
 	let tray = null;
 
 	const refresh = () => {
@@ -60,6 +78,7 @@ function createTray({ icon, showWindow, getTeams, setAllPaused, prefs, setPref, 
 					: '⇅ Aguardando parceiros';
 		tray.setToolTip(`Briefing — ${status}`);
 		const p = prefs();
+		const update = updateItem(p.update, checkUpdate, installUpdate);
 		tray.setContextMenu(
 			Menu.buildFromTemplate([
 				{ label: 'Abrir o Briefing', click: showWindow },
@@ -72,6 +91,7 @@ function createTray({ icon, showWindow, getTeams, setAllPaused, prefs, setPref, 
 				{ label: 'Continuar em segundo plano ao fechar', type: 'checkbox', checked: p.background, click: (i) => setPref('background', i.checked) },
 				{ label: 'Iniciar com o sistema', type: 'checkbox', checked: p.openAtLogin, click: (i) => setPref('openAtLogin', i.checked) },
 				{ type: 'separator' },
+				...(update ? [update, { type: 'separator' }] : []),
 				{ label: 'Sair do Briefing', click: quit },
 			]),
 		);

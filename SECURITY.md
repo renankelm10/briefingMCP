@@ -59,6 +59,16 @@ create a new team and move to it.
 - Embeddings are computed on your machine. The model (`Xenova/multilingual-e5-small`) is downloaded once from
   Hugging Face; after that, nothing leaves the computer.
 
+**App updates** (`src/main/updater.js`)
+- The installed app asks GitHub for the latest **published** release at startup and every 6 hours (drafts and
+  pre-releases are ignored). The request carries only the app version in the User-Agent. It can be turned off in
+  Settings → System → "Atualizar automaticamente".
+- Windows (installer) and Linux (AppImage) download the update in the background and install it on restart, only
+  after checking its SHA-512 against `latest.yml` from the same release. macOS and `.deb` only show a notice
+  with a link to the release page.
+- Updates are as trustworthy as the GitHub release they come from: releases are built only by GitHub Actions
+  from tagged commits, and the maintainer publishes each draft manually.
+
 ## Known limitations
 
 - Files are stored **unencrypted on disk** (they are your normal Markdown files). Use full-disk encryption.

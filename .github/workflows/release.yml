@@ -20,20 +20,25 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # latest*.yml e .blockmap: usados pela atualização automática do app
           - os: windows-latest
             target: --win
             files: |
               release/*.exe
+              release/*.exe.blockmap
+              release/latest.yml
           - os: macos-latest
             target: --mac
             files: |
               release/*.dmg
               release/*.zip
+              release/latest-mac.yml
           - os: ubuntu-latest
             target: --linux
             files: |
               release/*.AppImage
               release/*.deb
+              release/latest-linux.yml
     runs-on: ${{ matrix.os }}
     timeout-minutes: 45
     env:
@@ -91,6 +96,8 @@ jobs:
           rm -f release/*.exe
           cp release-signed/*.exe release/
           ls -la release/*.exe
+          # o arquivo assinado tem outro hash: atualiza o que o atualizador confere
+          node scripts/update-latest-yml.mjs release/latest.yml
 
       # ---------- Publish ----------
       - name: Checksums
@@ -107,6 +114,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           draft: true
+          fail_on_unmatched_files: false
           files: |
             ${{ matrix.files }}
             release/SHA256SUMS-*.txt

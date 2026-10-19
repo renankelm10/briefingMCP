@@ -1,7 +1,7 @@
 {
   "name": "briefing",
   "productName": "Briefing",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Local-first Markdown notes with peer-to-peer team folders and a local AI second brain that Claude can read through MCP.",
   "author": "Renan Kelm <renankelm10@gmail.com>",
   "license": "MIT",
@@ -38,8 +38,8 @@
     "dist:win": "node scripts/make-icon.mjs && node build.mjs && electron-builder --win",
     "dist:mac": "node scripts/make-icon.mjs && node build.mjs && electron-builder --mac",
     "dist:linux": "node scripts/make-icon.mjs && node build.mjs && electron-builder --linux",
-    "test": "node --test test/security.test.cjs test/sync.test.cjs test/brain.test.cjs test/mcp.test.mjs",
-    "test:fast": "node --test test/security.test.cjs test/sync.test.cjs",
+    "test": "node --test test/security.test.cjs test/sync.test.cjs test/updater.test.cjs test/brain.test.cjs test/mcp.test.mjs",
+    "test:fast": "node --test test/security.test.cjs test/sync.test.cjs test/updater.test.cjs",
     "mcp": "node src/mcp/server.mjs"
   },
   "devDependencies": {
@@ -62,6 +62,7 @@
     "@huggingface/transformers": "^4.3.1",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "b4a": "^1.9.0",
+    "electron-updater": "^6.8.9",
     "hyperdht": "^6.34.1",
     "hyperswarm": "^4.17.2",
     "node-diff3": "^3.2.1",
@@ -116,11 +117,15 @@
       "target": [
         {
           "target": "dmg",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         },
         {
           "target": "zip",
-          "arch": ["arm64"]
+          "arch": [
+            "arm64"
+          ]
         }
       ],
       "artifactName": "Briefing-${version}-${arch}.${ext}",

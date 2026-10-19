@@ -1732,19 +1732,54 @@ function openSettings() {
 		'Fechar a janela deixa o Briefing na bandeja do sistema, sincronizando com a equipe',
 	);
 	const loginToggle = systemToggle('openAtLogin', 'Iniciar com o sistema', 'Abre minimizado na bandeja quando você liga o computador');
+	const updateToggle = systemToggle(
+		'autoUpdate',
+		'Atualizar automaticamente',
+		'Procura versões novas no GitHub a cada 6 horas e instala quando você reiniciar o Briefing',
+	);
+
+	// Linha da versão: estado da atualização + botão que muda conforme o estado.
+	const updateRow = el('div', 'setting');
+	const updateInfo = el('div', 'setting-info');
+	const versionLabel = el('div', 'setting-label', 'Versão');
+	const updateStatus = el('div', 'setting-hint');
+	updateInfo.append(versionLabel, updateStatus);
+	const updateBtn = el('button', 'btn small');
+	updateRow.append(updateInfo, updateBtn);
+	body.append(updateRow);
+	const showUpdate = (version, u) => {
+		versionLabel.textContent = `Versão ${version}`;
+		const text = {
+			dev: 'Modo desenvolvimento: atualizações só no app instalado',
+			idle: 'Ainda não verificado',
+			checking: 'Verificando…',
+			latest: 'Você está na versão mais recente',
+			downloading: `Baixando a versão ${u.version}… ${u.progress}%`,
+			ready: `Versão ${u.version} pronta: será instalada ao reiniciar`,
+			available: `Versão ${u.version} disponível para download`,
+			error: u.error,
+		};
+		updateStatus.textContent = text[u.status] ?? '';
+		updateBtn.hidden = u.status === 'dev' || u.status === 'checking' || u.status === 'downloading';
+		updateBtn.textContent = u.status === 'ready' ? 'Reiniciar e atualizar' : u.status === 'available' ? 'Baixar' : 'Verificar agora';
+		updateBtn.classList.toggle('cta', u.status === 'ready' || u.status === 'available');
+		updateBtn.onclick = () => (u.status === 'ready' || u.status === 'available' ? api.app.installUpdate() : api.app.checkUpdate());
+	};
+	let appVersion = '';
+	const stopUpdates = api.on('app:update', (u) => (updateRow.isConnected ? showUpdate(appVersion, u) : stopUpdates()));
+
 	api.app.prefs().then((prefs) => {
 		bgToggle.checked = prefs.background;
 		loginToggle.checked = prefs.openAtLogin;
-		bgToggle.disabled = loginToggle.disabled = false;
+		updateToggle.checked = prefs.autoUpdate;
+		bgToggle.disabled = loginToggle.disabled = updateToggle.disabled = false;
+		appVersion = prefs.version;
+		showUpdate(prefs.version, prefs.update);
+		about.textContent = `Briefing ${prefs.version} · vault: ${state.vault?.root ?? '—'} · configurações salvas em .briefing/config.json dentro do vault.`;
 	});
 	body.append(el('div', 'settings-section', 'Sobre'));
-	body.append(
-		el(
-			'div',
-			'setting-hint about',
-			`Briefing 0.2 · vault: ${state.vault?.root ?? '—'} · configurações salvas em .briefing/config.json dentro do vault.`,
-		),
-	);
+	const about = el('div', 'setting-hint about', `Briefing · vault: ${state.vault?.root ?? '—'} · configurações salvas em .briefing/config.json dentro do vault.`);
+	body.append(about);
 	const buttons = el('div', 'modal-buttons');
 	const reveal = el('button', 'btn', 'Abrir pasta do vault');
 	reveal.onclick = () => api.revealVault();

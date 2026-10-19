@@ -5,6 +5,7 @@ const { app, BrowserWindow, ipcMain, dialog, shell, Menu, protocol, net, nativeT
 const { exec } = require('child_process');
 const { TeamManager } = require('./teams');
 const background = require('./background');
+const { createUpdater } = require('./updater');
 const path = require('path');
 const fs = require('fs');
 const fsp = fs.promises;
@@ -56,14 +57,31 @@ function showWindow() {
 	win.focus();
 }
 
+// Atualizações pelas Releases do GitHub (autoUpdate: padrão ligado; dá para desligar nas configurações).
+const updater = createUpdater({
+	isEnabled: () => config.autoUpdate !== false,
+	notify: (title, body, onClick) => background.notify(title, body, onClick),
+	onChange: (state) => {
+		win?.webContents.send('app:update', state);
+		tray?.refresh();
+	},
+});
+
 function appPrefs() {
-	return { background: config.background !== false, openAtLogin: background.isOpenAtLogin(APP_ROOT) };
+	return {
+		background: config.background !== false,
+		openAtLogin: background.isOpenAtLogin(APP_ROOT),
+		autoUpdate: config.autoUpdate !== false,
+		version: app.getVersion(),
+		update: updater.state,
+	};
 }
 
 function setAppPref(key, value) {
-	if (key === 'background') {
-		config.background = !!value;
+	if (key === 'background' || key === 'autoUpdate') {
+		config[key] = !!value;
 		saveConfig();
+		if (key === 'autoUpdate' && value) updater.check();
 	} else if (key === 'openAtLogin') {
 		background.setOpenAtLogin(!!value, APP_ROOT);
 	}
@@ -500,6 +518,8 @@ function startTeams() {
 
 handle('app:prefs-get', () => appPrefs());
 handle('app:prefs-set', (key, value) => setAppPref(String(key), value));
+handle('app:update-check', () => updater.check());
+handle('app:update-install', () => updater.install());
 
 handle('teams:info', () => teams.info());
 const assertTrusted = (dir) => {
@@ -792,9 +812,12 @@ if (!app.requestSingleInstanceLock()) {
 				},
 				prefs: appPrefs,
 				setPref: setAppPref,
+				checkUpdate: () => updater.check(),
+				installUpdate: () => updater.install(),
 				quit: () => app.quit(),
 			});
 			teams.on('changed', () => tray?.refresh());
+			updater.start();
 		}
 	});
 

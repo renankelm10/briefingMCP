@@ -101,6 +101,8 @@ Download the latest build for your system from **[Releases](https://github.com/r
 
 On first launch Briefing creates an example vault in `Documents/Briefing`. Use **Arquivo → Abrir outro vault…** to open any folder.
 
+**Updates.** From 0.3.1 on, Briefing checks GitHub for new releases. On Windows and with the AppImage it downloads them in the background and installs on the next restart; on macOS and with the `.deb` it shows a notice with the download link. You can turn this off in Settings → System. Closing the window keeps Briefing in the system tray so team sync keeps running; quit from the tray icon.
+
 ### Build from source
 
 Requires [Node.js 22+](https://nodejs.org).
@@ -144,7 +146,7 @@ Any MCP client that supports stdio servers works the same way. Use `BRIEFING_VAU
 
 ## Security & privacy
 
-- No account, no server, no telemetry. Notes are plain files on your disk.
+- No account, no server, no telemetry. Notes are plain files on your disk. The only automatic request is the update check to GitHub (can be turned off).
 - Sync connections are end‑to‑end encrypted and authenticated with the invite code; files from the network can never be written outside the shared folder, and executables received from others are never opened by Briefing.
 - Embeddings are computed locally; the model (`multilingual-e5-small`, ~120 MB) is downloaded once from Hugging Face.
 - MCP responses mark note content as untrusted data to reduce prompt‑injection risk.
@@ -189,7 +191,7 @@ Free code signing provided by [SignPath.io](https://about.signpath.io), certific
 - Committers and reviewers: [renankelm10](https://github.com/renankelm10)
 - Approvers (each signing request): [renankelm10](https://github.com/renankelm10)
 
-**Privacy:** Briefing has no account, server or telemetry. It connects to other systems only for features the user turns on: the Hyperswarm DHT to find teammates of a team folder the user created or joined (file contents travel end‑to‑end encrypted, directly between those teammates), and Hugging Face to download the AI model once. See [SECURITY.md](SECURITY.md).
+**Privacy:** Briefing has no account, server or telemetry. It connects to other systems only for: the Hyperswarm DHT to find teammates of a team folder the user created or joined (file contents travel end‑to‑end encrypted, directly between those teammates), Hugging Face to download the AI model once, and GitHub to check for app updates (can be turned off in Settings). See [SECURITY.md](SECURITY.md).
 
 ## Contributing
 
