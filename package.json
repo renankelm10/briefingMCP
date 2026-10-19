@@ -1,7 +1,7 @@
 {
   "name": "briefing",
   "productName": "Briefing",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Local-first Markdown notes with peer-to-peer team folders and a local AI second brain that Claude can read through MCP.",
   "author": "Renan Kelm <renankelm10@gmail.com>",
   "license": "MIT",
