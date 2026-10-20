@@ -50,6 +50,37 @@ test('mesclagem de texto e vetores de versão', () => {
 	assert.strictEqual(compareVersions({ a: 1, b: 2 }, { b: 2, a: 1 }), 'equal');
 });
 
+test('edição feita logo após receber um arquivo não se perde', async () => {
+	// O usuário edita no instante em que o arquivo do parceiro acaba de ser gravado.
+	// Antes, o motor media o arquivo depois disso e registrava a edição como se fosse o
+	// arquivo recebido: ela nunca era enviada para a equipe.
+	const dir = tmpDir('corrida');
+	const engine = new SyncEngine({ folder: dir, code: createInviteCode(), deviceName: 'B', log: () => {} });
+	await engine.loadState();
+	engine.send = () => {};
+	const sent = [];
+	engine.broadcastFile = async (rel, data) => sent.push({ rel, text: String(data ?? read(dir, rel)) });
+
+	const fsp = fs.promises;
+	const realRename = fsp.rename;
+	fsp.rename = async (from, to) => {
+		await realRename(from, to);
+		fsp.rename = realRename;
+		fs.writeFileSync(to, 'pauta do dia\n- edição do usuário feita na hora');
+	};
+	try {
+		const data = Buffer.from('pauta do dia');
+		const hash = require('crypto').createHash('sha256').update(data).digest('hex');
+		await engine.applyRemote({ name: 'A' }, 'Reunião.md', { hash, vv: { A: 1 } }, data);
+	} finally {
+		fsp.rename = realRename;
+	}
+
+	await engine.scanPath('Reunião.md');
+	assert.strictEqual(sent.length, 1, 'a edição do usuário deveria ser enviada');
+	assert.match(sent[0].text, /edição do usuário/);
+});
+
 test('dois PCs sincronizam pela rede P2P', { timeout: 120_000 }, async (t) => {
 	const testnet = await createTestnet(3);
 	const code = createInviteCode();

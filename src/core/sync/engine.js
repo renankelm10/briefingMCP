@@ -113,12 +113,17 @@ class SyncEngine extends EventEmitter {
 		return run;
 	}
 
+	// Devolve o stat do conteúdo gravado, medido no temporário ANTES de ir para o lugar
+	// (o rename preserva tamanho e data). Medir depois do rename registraria uma edição que o
+	// usuário fizesse nesse meio-tempo como se fosse o arquivo recebido, e ela nunca seria enviada.
 	async writeAtomic(abs, data) {
 		await fsp.mkdir(path.dirname(abs), { recursive: true });
 		await this.assertInside(path.dirname(abs));
 		const tmp = abs + TMP_SUFFIX;
 		await fsp.writeFile(tmp, data);
+		const st = await fsp.stat(tmp);
 		await fsp.rename(tmp, abs);
+		return st;
 	}
 
 	// Impede que um link simbólico dentro da pasta leve a gravação/exclusão para fora dela.
@@ -582,8 +587,7 @@ class SyncEngine extends EventEmitter {
 			this.emit('remote-change', { path: rel, deleted: true, from: peer.name });
 		} else {
 			if (prev && !prev.deleted) await this.snapshot(rel, abs).catch((err) => this.log('falha no histórico', err));
-			await this.writeAtomic(abs, data);
-			const st = await fsp.stat(abs);
+			const st = await this.writeAtomic(abs, data);
 			this.state.files[rel] = { hash: remote.hash, deleted: false, size: st.size, mtime: st.mtimeMs, vv, base: prev?.base };
 			await this.acknowledge(peer, rel, remote.hash, data);
 			this.saveState();
@@ -627,8 +631,7 @@ class SyncEngine extends EventEmitter {
 			const loserHash = localWins ? remote.hash : local.hash;
 			copy = conflictPath(rel, loserName, loserHash);
 			if (!fs.existsSync(this.abs(copy))) {
-				await this.writeAtomic(this.abs(copy), loser);
-				const st = await fsp.stat(this.abs(copy));
+				const st = await this.writeAtomic(this.abs(copy), loser);
 				// versão determinística: a mesma cópia criada nos dois PCs é reconhecida como igual
 				this.state.files[copy] = { hash: sha256(loser), deleted: false, size: st.size, mtime: st.mtimeMs, vv: { [`conflito-${loserHash.slice(0, 8)}`]: 1 } };
 			}
@@ -637,8 +640,7 @@ class SyncEngine extends EventEmitter {
 			this.emit('conflict', info);
 		}
 		await this.snapshot(rel, abs).catch((err) => this.log('falha no histórico', err));
-		await this.writeAtomic(abs, result);
-		const st = await fsp.stat(abs);
+		const st = await this.writeAtomic(abs, result);
 		this.state.files[rel] = { hash: sha256(result), deleted: false, size: st.size, mtime: st.mtimeMs, vv, base: local.base };
 		this.saveState();
 		this.emit('remote-change', { path: rel, deleted: false, from: peer.name, merged: !copy });
