@@ -1,46 +1,65 @@
 // Notas criadas no primeiro uso, em Documentos\Briefing.
+// Linguagem simples: quem abre o app pela primeira vez não precisa saber o que é Markdown.
 const WELCOME_NOTES = {
-	'Bem-vindo ao Briefing.md': `---
-tags: [inicio]
-criado: ${new Date().toISOString().slice(0, 10)}
----
-# Bem-vindo ao Briefing
+	'Comece aqui.md': `👋 Bem-vindo ao **Briefing**! Aqui você guarda as anotações do seu trabalho: clientes, reuniões, projetos, ideias.
+Tudo fica numa pasta **no seu computador**, como arquivos de texto comuns. Nada vai para a nuvem.
 
-O Briefing guarda suas notas como arquivos **Markdown** comuns numa pasta do seu computador.
-Nada fica preso ao app: você pode abrir, copiar ou versionar essa pasta como quiser.
+## Seus primeiros passos
+Marque cada item quando terminar (clique no quadradinho):
 
-## Comece por aqui
-- Leia [[Links e backlinks]] para entender como as notas se conectam.
-- Veja os [[Atalhos]] do teclado e os [[Recursos]] do app.
-- Crie um briefing com **Ctrl+Shift+B**.
-- Abra o exemplo [[Briefing de campanha]] para ver uma nota de trabalho real.
+- [ ] **Criar sua primeira nota** — clique no **＋** no topo da lista à esquerda e dê um nome a ela.
+- [ ] **Escrever com formatação** — comece uma linha com \`# \` para virar título, ou com \`- \` para virar lista.
+- [ ] **Ligar uma nota a outra** — escreva \`[[\` e escolha uma nota da lista. Vira um link que você pode clicar.
+- [ ] **Ver o mapa das suas notas** — clique no **◎** no canto de baixo, à esquerda.
+- [ ] **Buscar qualquer coisa** — use a caixa de busca no topo da lista à esquerda.
+- [ ] **Trabalhar com a equipe** — clique no **⇅** para criar uma equipe ou entrar com um convite.
+- [ ] **Conversar com o Claude sobre suas notas** — clique no **✦** para conectar.
+
+## Quer ajuda?
+- Veja [[Trabalhar em equipe]] e [[Usar com o Claude]].
+- O menu **Ajuda → Tour pela tela** mostra de novo onde fica cada coisa.
+- Para quem gosta de atalhos: [[Atalhos]].
+- Um exemplo de nota de trabalho: [[Briefing de campanha]].
 
 > [!tip] Dica
-> Pressione **Ctrl+O** para pular para qualquer nota e **Ctrl+G** para ver o grafo.
-
-## Tarefas
-- [x] Instalar o Briefing
-- [ ] Criar minha primeira nota com **Ctrl+N**
-- [ ] Conectar duas notas com \`[[ ]]\`
-
-#inicio
+> Pode apagar ou mudar esta nota à vontade. Ela é só um ponto de partida.
 `,
-	'Como usar/Links e backlinks.md': `# Links e backlinks
+	'Como usar/Trabalhar em equipe.md': `Com o Briefing, uma pasta pode ficar **igual no computador de todo mundo da equipe**.
+Quando alguém muda uma nota, a mudança aparece para os outros em segundos.
 
-Escreva \`[[Nome da nota]]\` para criar um link. Se a nota não existir, ela é criada quando você clicar no link.
+## Como começar
+1. Uma pessoa clica no **⇅** (canto de baixo, à esquerda) e escolhe **Criar uma equipe**.
+2. O Briefing gera um **código de convite** (começa com \`BRF-\`). Mande esse código para os colegas por WhatsApp ou e-mail.
+3. Cada colega clica no **⇅**, escolhe **Entrar numa equipe** e cola o código.
 
-- Link com texto diferente: \`[[Atalhos|veja os atalhos]]\` → [[Atalhos|veja os atalhos]]
-- Link para um título: \`[[Atalhos#Navegação]]\`
-- Incorporar outra nota: \`![[Atalhos]]\`
+Pronto: a pasta passa a ser compartilhada.
 
-No modo edição, segure **Ctrl** e clique num link para abri-lo.
+## Bom saber
+- Os computadores conversam **direto entre si**, com criptografia. Nenhum servidor guarda suas notas.
+- Para sincronizar, o Briefing precisa estar aberto (ele pode ficar só no ícone perto do relógio).
+- Se duas pessoas mudarem a **mesma frase** ao mesmo tempo, o Briefing guarda as duas versões, sem perder nada.
+- **Quem tem o código entra na equipe.** Compartilhe só com quem você confia.
 
-O painel da direita mostra os **backlinks**: as notas que apontam para a nota aberta.
-Volte para o [[Bem-vindo ao Briefing]].
-
-#guia
+Voltar para [[Comece aqui]].
 `,
-	'Como usar/Atalhos.md': `# Atalhos
+	'Como usar/Usar com o Claude.md': `O Briefing se conecta ao **Claude** (assistente de IA da Anthropic). Com isso, o Claude consegue
+**ler, buscar e escrever** nas suas notas enquanto conversa com você.
+
+## Como conectar
+Clique no **✦** (canto de baixo, à esquerda) e depois em **Conectar automaticamente**.
+É preciso ter o **Claude Code** instalado neste computador. Depois de conectar, abra o Claude de novo.
+
+## Exemplos do que pedir
+- "Resuma a última reunião com o cliente X."
+- "Quais tarefas estão pendentes no projeto Y?"
+- "Crie uma nota com a pauta da reunião de amanhã."
+- "O que a equipe decidiu sobre o prazo da campanha?"
+
+As notas continuam no seu computador. O Claude só lê o que você pedir.
+
+Voltar para [[Comece aqui]].
+`,
+	'Como usar/Atalhos.md': `Para quem prefere o teclado. No Mac, use ⌘ no lugar de Ctrl.
 
 ## Navegação
 | Atalho | Ação |
@@ -49,8 +68,8 @@ Volte para o [[Bem-vindo ao Briefing]].
 | Ctrl+P | Paleta de comandos |
 | Ctrl+T / Ctrl+W | Nova aba / fechar aba |
 | Ctrl+Tab | Próxima aba |
-| Ctrl+G / Ctrl+Shift+G | Grafo / grafo local |
-| Ctrl+Shift+F | Buscar no vault |
+| Ctrl+G / Ctrl+Shift+G | Mapa das notas / mapa da nota atual |
+| Ctrl+Shift+F | Buscar em todas as notas |
 | Ctrl+Alt+← / → | Voltar / avançar |
 | Ctrl+\\ / Ctrl+Shift+\\ | Mostrar/ocultar painéis |
 | Ctrl+Shift+Enter | Modo foco |
@@ -63,41 +82,36 @@ Volte para o [[Bem-vindo ao Briefing]].
 | Ctrl+Shift+B | Novo briefing (a partir do modelo) |
 | Ctrl+Shift+N | Nova nota a partir de modelo |
 | Ctrl+Shift+T | Inserir modelo na nota |
-| Ctrl+Shift+D | Nota diária |
+| Ctrl+Shift+D | Nota do dia |
 
 ## Edição
 | Atalho | Ação |
 |---|---|
 | Ctrl+B / Ctrl+I | Negrito / itálico |
 | Ctrl+Shift+H | ==Destacar== |
-| Ctrl+K | Link Markdown |
-| Ctrl+L | Alternar tarefa |
+| Ctrl+K | Link |
+| Ctrl+L | Marcar/desmarcar tarefa |
 | Ctrl+E | Alternar leitura / edição |
 | F2 | Renomear nota |
 | Ctrl+F | Buscar e substituir na nota |
 | Ctrl+clique | Abrir link |
 
-Na busca, digite \`#tag\` para filtrar por tag. Cole imagens direto no editor: elas vão para a pasta **Anexos**.
+Na busca, digite \`#tag\` para filtrar por tag. Cole imagens direto na nota: elas vão para a pasta **Anexos**.
 
-#guia
+Voltar para [[Comece aqui]].
 `,
-	'Como usar/Recursos.md': `# Recursos do Briefing
+	'Como usar/Recursos.md': `- **Abas**: abra várias notas ao mesmo tempo, como no navegador.
+- **Formatação na hora**: escreva normalmente; títulos, listas e negrito aparecem enquanto você digita.
+- **Ligações entre notas**: escreva \`[[\` para ligar uma nota a outra. O painel da direita mostra quem cita a nota aberta.
+- **Prévia**: passe o mouse sobre um link para ver a nota sem abrir.
+- **Tarefas**: todo \`- [ ]\` vira uma tarefa; o painel **Tarefas** junta as de todas as notas.
+- **Agenda**: uma nota por dia, num calendário.
+- **Histórico**: menu ⋯ → Histórico. O Briefing guarda versões antigas de cada nota.
+- **PDF**: menu ⋯ → Exportar para PDF.
+- **Modelos**: crie notas na pasta *Modelos* e use como ponto de partida.
+- **Favoritos**: clique na ☆ no topo da nota.
 
-- **Abas**: abra várias notas ao mesmo tempo; arraste para reordenar.
-- **Live Preview**: a formatação aparece enquanto você escreve; a marcação volta quando o cursor entra na linha.
-- **Prévia ao passar o mouse** sobre qualquer [[Links e backlinks|link]].
-- **Painel de tarefas**: todas as \`- [ ]\` do vault num lugar só.
-- **Agenda**: calendário de notas diárias.
-- **Menções não vinculadas**: o Briefing encontra onde o nome da nota aparece sem link.
-- **Histórico de versões**: menu ⋯ → Histórico. Uma cópia é guardada antes de cada edição (a cada 5 min).
-- **Exportar para PDF**: menu ⋯ → Exportar.
-- **Modelos**: crie notas na pasta *Modelos* com \`{{title}}\`, \`{{date}}\`, \`{{time}}\`.
-- **Favoritos**: ☆ no topo da nota.
-
-> [!tip] Comentários
-> Texto entre %%sinais de porcentagem%% não aparece no modo leitura.
-
-#guia
+Voltar para [[Comece aqui]].
 `,
 	'Projetos/Briefing de campanha.md': `---
 cliente: Exemplo Ltda
@@ -105,6 +119,9 @@ status: em andamento
 tags: [projeto, campanha]
 ---
 # Briefing de campanha
+
+> [!info] Esta é uma nota de exemplo
+> Mostra como pode ficar uma nota de trabalho. As linhas lá em cima (cliente, status) são **propriedades**: aparecem como uma ficha.
 
 ## Objetivo
 Aumentar o reconhecimento da marca no público de 25–40 anos.
@@ -119,7 +136,6 @@ Profissionais urbanos que pesquisam online antes de comprar.
 
 ## Referências
 - Reunião inicial: [[Reunião de kickoff]]
-- Guia de uso: [[Links e backlinks]]
 
 #projeto
 `,
@@ -131,10 +147,13 @@ Profissionais urbanos que pesquisam online antes de comprar.
 1. Prazo de entrega em 30 dias.
 2. Tom de voz próximo e direto.
 
-Relacionado: [[Briefing de campanha]] · [[Próximos passos]]
+Relacionado: [[Briefing de campanha]]
 
 #reuniao #projeto
 `,
 };
 
-module.exports = { WELCOME_NOTES };
+// Nota aberta ao final das boas-vindas.
+const START_NOTE = 'Comece aqui.md';
+
+module.exports = { WELCOME_NOTES, START_NOTE };

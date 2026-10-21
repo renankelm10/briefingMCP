@@ -73,13 +73,14 @@ function appPrefs() {
 		openAtLogin: background.isOpenAtLogin(APP_ROOT),
 		autoUpdate: config.autoUpdate !== false,
 		semanticSearch: config.semanticSearch === true,
+		onboarded: config.onboarded !== false, // false só na primeira abertura: mostra as boas-vindas
 		version: app.getVersion(),
 		update: updater.state,
 	};
 }
 
 function setAppPref(key, value) {
-	if (key === 'background' || key === 'autoUpdate') {
+	if (key === 'background' || key === 'autoUpdate' || key === 'onboarded') {
 		config[key] = !!value;
 		saveConfig();
 		if (key === 'autoUpdate' && value) updater.check();
@@ -655,6 +656,17 @@ function buildMenu() {
 				{ role: 'toggleDevTools', label: 'Ferramentas de desenvolvedor' },
 			],
 		},
+		{
+			label: 'Ajuda',
+			submenu: [
+				item('Comece aqui', 'getting-started'),
+				item('Tour pela tela', 'tour'),
+				item('Assistente de boas-vindas…', 'welcome'),
+				{ type: 'separator' },
+				item('Atalhos do teclado', 'shortcuts'),
+				item('Site do projeto', 'project-site'),
+			],
+		},
 	]);
 }
 
@@ -771,6 +783,12 @@ if (!app.requestSingleInstanceLock()) {
 
 	app.whenReady().then(async () => {
 		loadConfig();
+		// Primeira abertura: ainda não há vault salvo. Quem já usava o app não vê as boas-vindas.
+		// Com BRIEFING_VAULT (testes e capturas de tela) só aparecem se BRIEFING_ONBOARDING=1.
+		if (config.onboarded === undefined) {
+			config.onboarded = !!config.lastVault || (!!VAULT_OVERRIDE && process.env.BRIEFING_ONBOARDING !== '1');
+			saveConfig();
+		}
 		try {
 			// no macOS o corretor é o do sistema e esta chamada não se aplica
 			if (!IS_MAC) session.defaultSession.setSpellCheckerLanguages(['pt-BR', 'en-US']);

@@ -7,6 +7,7 @@ import { splitLink, splitFrontmatter } from './parse.js';
 import { BUILTIN_TEMPLATES, applyTemplate } from './templates.js';
 import { DEFAULT_SETTINGS, SETTINGS_SCHEMA, SETTINGS_FILE, WORKSPACE_FILE, mergeSettings } from './settings.js';
 import { renderCalendar } from './calendar.js';
+import { openWelcome, startTour, START_NOTE } from './onboarding.js';
 import {
 	debounce,
 	el,
@@ -251,7 +252,7 @@ async function loadVault() {
 
 function pickStartNote() {
 	const list = notes().map((f) => f.path);
-	return list.find((p) => /^bem-vindo/i.test(p)) ?? state.recent.find(exists) ?? list.sort(byName)[0] ?? null;
+	return list.find((p) => /^(comece aqui|bem-vindo)/i.test(p)) ?? state.recent.find(exists) ?? list.sort(byName)[0] ?? null;
 }
 
 /* ---------- exibição da aba ativa ---------- */
@@ -2033,6 +2034,41 @@ async function openFolderAsVault(folder) {
 	await loadVault();
 }
 
+/* ---------- primeiros passos ---------- */
+
+const PROJECT_URL = 'https://github.com/renankelm10/briefingMCP';
+
+const onboarding = {
+	api,
+	vault: () => state.vault,
+	modalShell,
+	closeModal,
+	onDismiss: (fn) => (state.modalCleanup = fn),
+	formatHotkey,
+	openFolderAsVault,
+	// Troca a pasta sem fechar o assistente (o modal continua aberto por cima).
+	async pickVault() {
+		await saveAll();
+		const info = await api.choose();
+		if (!info) return false;
+		setSearch('', false);
+		await loadVault();
+		return true;
+	},
+	async openStartNote() {
+		if (state.files.some((f) => f.path === START_NOTE)) await open(START_NOTE);
+	},
+};
+
+const openGettingStarted = async () => {
+	if (state.files.some((f) => f.path === START_NOTE)) return open(START_NOTE);
+	const ok = await dialogModal({
+		message: 'Este vault não tem a nota "Comece aqui". Quer ver os primeiros passos no assistente de boas-vindas?',
+		okLabel: 'Abrir boas-vindas',
+	});
+	if (ok) openWelcome(onboarding);
+};
+
 function renderTeamCard(team) {
 	const card = el('div', `team-card${team.paused ? ' paused' : ''}`);
 	const online = team.peers.length;
@@ -2562,6 +2598,11 @@ const COMMANDS = [
 	{ id: 'teams', label: 'Equipes e sincronização P2P', hotkey: 'Ctrl+Shift+E', run: openTeams },
 	{ id: 'open-vault', label: 'Abrir outro vault…', run: chooseVault },
 	{ id: 'reveal-vault', label: 'Mostrar vault no Explorer', run: () => api.revealVault() },
+	{ id: 'getting-started', label: 'Ajuda: Comece aqui (primeiros passos)', run: openGettingStarted },
+	{ id: 'tour', label: 'Ajuda: Tour pela tela', run: () => startTour(onboarding) },
+	{ id: 'welcome', label: 'Ajuda: Assistente de boas-vindas', run: () => openWelcome(onboarding) },
+	{ id: 'shortcuts', label: 'Ajuda: Atalhos do teclado', run: () => openLink('Atalhos', currentPath()) },
+	{ id: 'project-site', label: 'Ajuda: Site do projeto', run: () => api.openExternal(PROJECT_URL) },
 ];
 
 const HOTKEYS = {
@@ -2807,7 +2848,13 @@ function setupUi() {
 }
 
 setupUi();
-loadVault().catch((err) => {
-	console.error(err);
-	alertModal(`Falha ao abrir o vault: ${err.message}`);
-});
+loadVault()
+	.then(async () => {
+		// Primeira abertura: assistente de boas-vindas.
+		const prefs = await api.app.prefs();
+		if (!prefs.onboarded) openWelcome(onboarding);
+	})
+	.catch((err) => {
+		console.error(err);
+		alertModal(`Falha ao abrir o vault: ${err.message}`);
+	});
